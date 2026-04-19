@@ -13,8 +13,8 @@ firebase-service-account.json
 *.ipa
 *.aab
 FloodSense.apk
-mobile/build/
-mobile/deploy_web/
+frontend/build/
+frontend/deploy_web/
 
 # ─── Python ──────────────────────────────────────────────────────────────────
 __pycache__/

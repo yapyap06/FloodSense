@@ -104,7 +104,7 @@ uvicorn agent_server:app --reload
 
 ### 3. Web App (Flutter)
 ```bash
-cd mobile
+cd frontend
 flutter pub get
 flutter run -d chrome
 ```
@@ -129,7 +129,7 @@ flutter run -d chrome
 
 ```
 FloodSense/
-├── mobile/          # Flutter Web App (Citizen + Volunteer)
+├── frontend/        # Flutter Web App (Citizen + Volunteer)
 ├── dashboard/       # Next.js Government Command Centre
 ├── agents/          # Python FastAPI Multi-Agent AI Backend
 ├── firestore.rules  # Database security rules
