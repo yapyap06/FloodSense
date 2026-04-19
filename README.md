@@ -30,12 +30,35 @@ FloodSense is an end-to-end autonomous disaster response system that transitions
 
 ## 🏗 Architecture
 
+![Functional Diagram](./func_diagram.png)
+
+```mermaid
+graph TD
+    subgraph Frontend [Mobile Applications - Flutter]
+        C[Citizen App]
+        V[Volunteer App]
+        G[Government Command App]
+    end
+
+    subgraph Database [BaaS Cloud Layer]
+        FS[(Firestore Real-Time DB)]
+    end
+
+    subgraph Backend [Google Cloud Run - Multi-Agent Backend]
+        CA[Citizen Agent<br>Gemini 2.0 Flash]
+        CO[Coordinator Agent<br>Gemini 2.0 Pro]
+        RA[Resource Agent<br>Gemini 2.0 Flash]
+    end
+
+    C <--> |Live Tracking / Requests| FS
+    V <--> |Live GPS Stream| FS
+    G <--> |Dashboard Auditing| FS
+
+    FS <--> |Triggers & Payloads| CA
+    FS <--> |SitReps & Data| CO
+    FS <--> |Predictions| RA
 ```
-[Flutter Web App]  ──────────────────────────────────────────────────────────────────┐
-                                                                                      ▼
-                                                    [Firebase Firestore]  ◄──►  [FastAPI AI Agents]
-                                                                                 Gemini 2.0 Flash/Pro
-```
+
 
 **Stack:**
 - **Frontend:** Flutter (Web)
