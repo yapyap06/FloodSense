@@ -114,6 +114,31 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                     style: const TextStyle(color: Colors.white70, fontSize: 12)),
               ]),
             ],
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white24, height: 1),
+            const SizedBox(height: 12),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _repo.watchCompletedMissions(widget.userName),
+              builder: (ctx, missionSnap) {
+                final count = missionSnap.data?.docs.length ?? 0;
+                final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
+                return Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      isMs ? '$count Kes Selesai' : '$count Missions Done',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ]),
         );
       },
