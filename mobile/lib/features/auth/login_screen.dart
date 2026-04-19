@@ -16,13 +16,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
 
   Future<void> _continue(String langCode) async {
-    final name = _phoneCtrl.text.trim();
-    if (name.isEmpty) {
+    final phone = _phoneCtrl.text.trim();
+    final ic = _icCtrl.text.trim();
+    if (phone.isEmpty || ic.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(langCode == 'ms' 
-              ? 'Sila masukkan nombor telefon anda untuk meneruskan.' 
-              : 'Please enter your phone number to continue.'),
+              ? 'Sila masukkan nombor telefon dan MyKad anda untuk meneruskan.' 
+              : 'Please enter your phone number and MyKad to continue.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -33,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _loading = false);
       Navigator.pushReplacement(context, MaterialPageRoute(
-        builder: (_) => RoleSelectionScreen(name: name),
+        builder: (_) => RoleSelectionScreen(phone: phone, ic: ic),
       ));
     }
   }
@@ -133,7 +134,9 @@ class _LoginScreenState extends State<LoginScreen> {
           Center(
             child: TextButton(
               onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(
-                builder: (_) => RoleSelectionScreen(name: isMs ? 'Tetamu' : 'Guest'),
+                builder: (_) => RoleSelectionScreen(
+                    phone: isMs ? 'Tetamu' : 'Guest', 
+                    ic: isMs ? 'Tetamu' : 'Guest'),
               )),
               child: Text(isMs ? 'Teruskan sebagai Tetamu' : 'Continue as Guest',
                   style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),

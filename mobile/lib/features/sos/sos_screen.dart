@@ -14,8 +14,9 @@ import 'sos_map_view.dart';
 enum _SOSStep { idle, situation, location, sent }
 
 class SOSScreen extends StatefulWidget {
-  final String userName;
-  const SOSScreen({super.key, this.userName = 'Mangsa App'});
+  final String contactName;
+  final String phone;
+  const SOSScreen({super.key, required this.contactName, required this.phone});
   @override
   State<SOSScreen> createState() => _SOSScreenState();
 }
@@ -25,9 +26,11 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
   final _situations = <String>{};
   final _otherCtrl = TextEditingController();
   final _manualLocationCtrl = TextEditingController();
+  final _descriptionCtrl = TextEditingController();
   bool _showOtherField = false;
   bool _sending = false;
   String? _incidentId;
+  int _peopleCount = 1;
 
   // GPS state
   LatLng? _currentPosition;
@@ -56,7 +59,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     try {
       final snap = await FirebaseFirestore.instance
           .collection('incidents')
-          .where('sender_phone', isEqualTo: widget.userName)
+          .where('sender_phone', isEqualTo: widget.phone)
           .get();
 
       if (snap.docs.isNotEmpty && mounted) {
@@ -91,6 +94,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     _pulseCtrl.dispose();
     _otherCtrl.dispose();
     _manualLocationCtrl.dispose();
+    _descriptionCtrl.dispose();
     super.dispose();
   }
 
@@ -227,6 +231,17 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
             doc.reference.update({'status': 'CANCELLED'});
           }
         }).catchError((_) {});
+
+        // Also cancel any mission offers linked to this SOS
+        FirebaseFirestore.instance
+            .collection('mission_offers')
+            .where('sos_id', isEqualTo: _incidentId)
+            .get()
+            .then((snap) {
+          for (var doc in snap.docs) {
+             doc.reference.update({'status': 'CANCELLED'});
+          }
+        }).catchError((_) {});
       }
       setState(() {
         _step = _SOSStep.idle;
@@ -271,6 +286,17 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
           doc.reference.update({'status': 'CANCELLED'});
         }
       }).catchError((_) {});
+
+      // Also cancel any mission offers linked to this SOS
+      FirebaseFirestore.instance
+          .collection('mission_offers')
+          .where('sos_id', isEqualTo: _incidentId)
+          .get()
+          .then((snap) {
+        for (var doc in snap.docs) {
+           doc.reference.update({'status': 'CANCELLED'});
+        }
+      }).catchError((_) {});
       
       if (mounted) {
         setState(() {
@@ -297,8 +323,9 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     final address = _manualLocationCtrl.text.trim().isNotEmpty
         ? _manualLocationCtrl.text.trim()
         : 'GPS (${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)})';
+    final description = _descriptionCtrl.text.trim();
     final rawMessage =
-        'SOS! ${sits.join(', ')}. Location: $address. Lat: ${loc.latitude}, Lng: ${loc.longitude}.';
+        'SOS! ${sits.join(', ')}. People: $_peopleCount. ${description.isNotEmpty ? 'Notes: $description. ' : ''}Location: $address. Lat: ${loc.latitude}, Lng: ${loc.longitude}.';
 
     try {
       final agentService = AgentService();
@@ -308,10 +335,27 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
         final response = await agentService.submitSOS(
           rawMessage: rawMessage,
           channel: 'app',
-          senderPhone: widget.userName,
+          senderPhone: widget.phone,
           lat: loc.latitude,
           lng: loc.longitude,
         );
+        // Patch the extra fields that the agent may not persist
+        if (response.sosId != null) {
+          FirebaseFirestore.instance
+              .collection('incidents')
+              .where('sos_id', isEqualTo: response.sosId)
+              .get()
+              .then((snap) {
+            for (final doc in snap.docs) {
+              doc.reference.update({
+                'head_count': _peopleCount,
+                'headcount': _peopleCount,
+                'description': description,
+                'situations': sits.toList(),
+              });
+            }
+          }).catchError((_) {});
+        }
         if (mounted) {
           setState(() {
             _incidentId = response.sosId ?? 'SOS-${DateTime.now().millisecondsSinceEpoch.toRadixString(16).toUpperCase()}';
@@ -325,8 +369,9 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
           'sos_id': id,
           'urgency': 'CRITICAL',
           'status': 'PENDING',
-          'headcount': 1,
-          'head_count': 1,
+          'headcount': _peopleCount,
+          'head_count': _peopleCount,
+          'description': description,
           'situations': sits.toList(),
           'vulnerable': sits.where((s) => s == 'Infant/Elderly').toList(),
           'location': GeoPoint(loc.latitude, loc.longitude),
@@ -334,8 +379,8 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
           'lng': loc.longitude,
           'address': address,
           'address_text': address,
-          'contact_name': widget.userName,
-          'sender_phone': widget.userName,
+          'contact_name': widget.contactName,
+          'sender_phone': widget.phone,
           'battery_level': 0,
           'channel': 'FLUTTER_APP_OFFLINE',
           'language': 'ms',
@@ -750,7 +795,99 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
           ),
         ],
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
+
+        // ── Number of people selector ──────────────────────────────────────
+        Text(
+          isMs ? 'Bilangan orang yang memerlukan bantuan' : 'Number of people needing help',
+          style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: AppTheme.textPrimary),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: List.generate(5, (index) {
+            final count = index + 1;
+            final selected = _peopleCount == count;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _peopleCount = count),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: selected ? AppTheme.emergency : AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: selected ? AppTheme.emergency : AppTheme.border,
+                      width: selected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$count',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: selected ? Colors.white : AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        isMs ? 'org' : 'pax',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: selected ? Colors.white70 : AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Description field ──────────────────────────────────────────────
+        Text(
+          isMs ? 'Penerangan tambahan (pilihan)' : 'Additional description (optional)',
+          style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: AppTheme.textPrimary),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _descriptionCtrl,
+          maxLines: 3,
+          maxLength: 200,
+          style: const TextStyle(color: Colors.black, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: isMs
+                ? 'Contoh: Kami terperangkap di tingkat 2, ada warga emas...'
+                : 'e.g. We are on the 2nd floor, there is an elderly person...',
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+            prefixIcon: const Icon(Icons.description_outlined, color: AppTheme.govBlue),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.border)),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.border)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.govBlue, width: 2)),
+            counterStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 10),
+          ),
+        ),
+
+        const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -812,17 +949,46 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
           (isMs ? 'SOS Diterima' : 'SOS Received', isMs ? 'Membaca permohonan...' : 'Processing request...', AppTheme.hope, Icons.sos),
         ];
 
-        if (status == 'ASSIGNED' || status == 'DISPATCHED' || status == 'RESCUED') {
+        if (status == 'ASSIGNED' || status == 'DISPATCHED' || status == 'RESCUED' || status == 'RESOLVED') {
           steps.add((isMs ? 'Bantuan Dihantar' : 'Rescue Assigned', isMs ? 'Sukarelawan sedang dalam perjalanan!' : 'Volunteer is on the way!', AppTheme.warning, Icons.directions_run));
         }
-        if (status == 'RESCUED') {
+        if (status == 'RESCUED' || status == 'RESOLVED') {
           steps.add((isMs ? 'Misi Selesai' : 'Mission Complete', isMs ? 'Mangsa berjaya diselamatkan.' : 'Victim successfully rescued.', AppTheme.hope, Icons.check_circle));
         }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (volunteerIsNear && status != 'RESCUED')
+        if (status == 'RESOLVED')
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.hope,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(color: AppTheme.hope.withAlpha(80), blurRadius: 10, spreadRadius: 2),
+              ],
+            ),
+            child: Row(children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white, size: 36),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isMs ? 'BANTUAN SUDAH TIBA!' : 'HELP HAS ARRIVED!', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(isMs ? 'Misi menyelamat telah selesai. Terima kasih kepada sukarelawan.' : 'Rescue mission complete. Thank you to the volunteers.',
+                        style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.3)),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+
+        if (volunteerIsNear && status != 'RESCUED' && status != 'RESOLVED')
           Container(
             width: double.infinity,
             margin: const EdgeInsets.only(bottom: 16),
@@ -889,17 +1055,17 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: status == 'RESCUED' ? AppTheme.hope : AppTheme.govBlue,
+              color: (status == 'RESCUED' || status == 'RESOLVED') ? AppTheme.hope : AppTheme.govBlue,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(children: [
-              Icon(status == 'RESCUED' ? Icons.check_circle : Icons.directions_run, color: Colors.white, size: 28),
+              Icon((status == 'RESCUED' || status == 'RESOLVED') ? Icons.check_circle : Icons.directions_run, color: Colors.white, size: 28),
               const SizedBox(width: 12),
               Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text(status == 'RESCUED' 
+                    Text((status == 'RESCUED' || status == 'RESOLVED') 
                           ? (isMs ? 'Penyelamatan Selesai!' : 'Rescue Complete!') 
                           : (isMs ? 'Bantuan Dihantar!' : 'Help Assigned!'),
                         style: const TextStyle(
@@ -907,7 +1073,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
                             fontWeight: FontWeight.w800,
                             fontSize: 15)),
                     const SizedBox(height: 2),
-                    Text(status == 'RESCUED' 
+                    Text((status == 'RESCUED' || status == 'RESOLVED') 
                           ? (isMs ? 'Misi menyelamat telah ditanda selesai.' : 'The rescue mission has been marked completed by the volunteer.') 
                           : (isMs ? 'Sukarelawan sedang dalam perjalanan.' : 'A volunteer has accepted the mission and is en-route.'),
                         style: const TextStyle(color: Colors.white70, fontSize: 13)),

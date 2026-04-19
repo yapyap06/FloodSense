@@ -56,17 +56,30 @@ class VolunteerRepository {
       .where('status', isEqualTo: 'OFFERED')
       .snapshots();
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveMissions(String uid) => _db
+      .collection('mission_offers')
+      .where('volunteer_id', isEqualTo: uid)
+      .where('status', isEqualTo: 'ACCEPTED')
+      .snapshots();
+
   Future<void> respondToMission(String missionId, String response, String sosId) async {
     final updates = <String, dynamic>{'status': response};
     if (response == 'ACCEPTED') {
       updates['accepted_at'] = FieldValue.serverTimestamp();
     }
     await _db.collection('mission_offers').doc(missionId).set(updates, SetOptions(merge: true));
+    
     if (response == 'ACCEPTED') {
       await _db.collection('incidents').doc(sosId).update({
         'assigned_volunteer': missionId,
         // Use 'ASSIGNED' to match GovSOSScreen filter chips (PENDING/ASSIGNED/RESOLVED)
         'status': 'ASSIGNED',
+      });
+    } else if (response == 'DECLINED') {
+      // Return the case to PENDING so it appears on the global map for all other volunteers
+      await _db.collection('incidents').doc(sosId).update({
+        'assigned_volunteer': FieldValue.delete(),
+        'status': 'PENDING',
       });
     }
   }

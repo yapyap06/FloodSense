@@ -21,8 +21,9 @@ import 'core/theme/app_theme.dart';
 
 class AppShell extends StatefulWidget {
   final UserRole role;
-  final String userName;
-  const AppShell({super.key, required this.role, required this.userName});
+  final String phone;
+  final String ic;
+  const AppShell({super.key, required this.role, required this.phone, required this.ic});
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -33,17 +34,17 @@ class _AppShellState extends State<AppShell> {
   // ── Screen lists (lazy — only built once by IndexedStack) ─────────────────
 
   late final List<Widget> _citizenScreens = [
-    CitizenHomeScreen(userName: widget.userName),
-    SOSScreen(userName: widget.userName),
-    SOPScreen(userName: '${widget.role.name}_${widget.userName}'),
-    DamageClaimScreen(userName: widget.userName),
+    CitizenHomeScreen(userName: widget.ic),
+    SOSScreen(contactName: widget.ic, phone: widget.phone),
+    SOPScreen(userName: '${widget.role.name}_${widget.ic}'),
+    DamageClaimScreen(userName: widget.ic),
   ];
 
   late final List<Widget> _volunteerScreens = [
-    VolunteerHomeScreen(userName: widget.userName, onSwitchTab: _onTap),
-    VolunteerSOSScreen(userName: widget.userName),
-    VolunteerScreen(userName: widget.userName),
-    SOPScreen(userName: '${widget.role.name}_${widget.userName}'),
+    VolunteerHomeScreen(userName: widget.ic, onSwitchTab: _onTap),
+    VolunteerSOSScreen(userName: widget.ic),
+    VolunteerScreen(userName: widget.ic),
+    SOPScreen(userName: '${widget.role.name}_${widget.ic}'),
     const VolunteerGuideScreen(),
   ];
 
@@ -173,7 +174,7 @@ class _AppShellState extends State<AppShell> {
             context,
             MaterialPageRoute(
               builder: (_) =>
-                  ProfileScreen(userName: widget.userName, role: widget.role),
+                  ProfileScreen(userName: widget.ic, role: widget.role),
             ),
           ),
           child: Container(
@@ -182,7 +183,7 @@ class _AppShellState extends State<AppShell> {
             decoration: BoxDecoration(color: roleColor, shape: BoxShape.circle),
             child: Center(
               child: Text(
-                widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U',
+                widget.ic.isNotEmpty ? widget.ic[0].toUpperCase() : 'U',
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
               ),

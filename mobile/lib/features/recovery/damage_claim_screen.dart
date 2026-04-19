@@ -797,7 +797,13 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
   }
 
   Future<void> _showItemPicker(BuildContext ctx, int rowIdx, String cat) async {
-    final items = _catItems[cat] ?? [];
+    final allItems = _catItems[cat] ?? [];
+    final existingKeys = _claimRows.asMap().entries
+        .where((e) => e.key != rowIdx)
+        .map((e) => e.value['itemKey'] as String)
+        .toSet();
+    final items = allItems.where((k) => !existingKeys.contains(k)).toList();
+
     final picked = await showModalBottomSheet<String>(
       context: ctx,
       shape: const RoundedRectangleBorder(
@@ -807,14 +813,21 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(cat, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 300),
-          child: ListView(shrinkWrap: true, children: items.map((key) => ListTile(
-            leading: Icon(_categoryIcon(cat), color: AppTheme.govBlue, size: 20),
-            title: Text(_displayName(key), style: const TextStyle(fontWeight: FontWeight.w600)),
-            onTap: () => Navigator.pop(ctx, key),
-          )).toList()),
-        ),
+        if (items.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Text('Semua item dalam kategori ini telah dipilih / All items in this category are already selected.',
+                textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF4B5563), fontSize: 13)),
+          )
+        else
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 300),
+            child: ListView(shrinkWrap: true, children: items.map((key) => ListTile(
+              leading: Icon(_categoryIcon(cat), color: AppTheme.govBlue, size: 20),
+              title: Text(_displayName(key), style: const TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () => Navigator.pop(ctx, key),
+            )).toList()),
+          ),
         const SizedBox(height: 12),
       ]),
     );

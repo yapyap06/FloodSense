@@ -257,49 +257,121 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
               fontWeight: FontWeight.w600)),
       const SizedBox(height: 12),
 
-      // ── Demo mission cards with timeline ─────────────────────────────
-      _MissionTimelineCard(
-        missionId: 'MSN-2026-0145',
-        title: isMs ? 'Pemindahan & Makan Mangsa — Taman Meru' : 'Evacuation & Feeding — Taman Meru',
-        group: isMs ? 'Kumpulan Alpha' : 'Alpha Team',
-        groupColor: AppTheme.hope,
-        status: isMs ? 'DALAM MISI' : 'ON MISSION',
-        statusColor: AppTheme.warning,
-        phases: [
-          _MissionPhase(time: '07:30', label: isMs ? 'Taklimat Pasukan' : 'Team Briefing',
-              done: true, icon: Icons.groups_outlined),
-          _MissionPhase(time: '08:00', label: isMs ? 'Gerak ke lokasi' : 'Depart to site',
-              done: true, icon: Icons.directions_car_outlined),
-          _MissionPhase(time: '08:45', label: isMs ? 'Pemindahan 12 mangsa' : 'Evacuate 12 victims',
-              done: true, icon: Icons.transfer_within_a_station),
-          _MissionPhase(time: '10:00', label: isMs ? 'Agih makanan di PPS Meru' : 'Distribute food at PPS Meru',
-              done: false, icon: Icons.restaurant_outlined),
-          _MissionPhase(time: '12:00', label: isMs ? 'Laporan selesai' : 'Submit completion report',
-              done: false, icon: Icons.assignment_turned_in_outlined),
-        ],
-      ),
-      const SizedBox(height: 10),
-      _MissionTimelineCard(
-        missionId: 'MSN-2026-0138',
-        title: isMs ? 'Penilaian Banjir — Kampung Jawa' : 'Flood Assessment — Kampung Jawa',
-        group: isMs ? 'Kumpulan Bravo' : 'Bravo Team',
-        groupColor: AppTheme.govBlue,
-        status: isMs ? 'SELESAI' : 'COMPLETED',
-        statusColor: AppTheme.hope,
-        phases: [
-          _MissionPhase(time: '06:00', label: isMs ? 'Taklimat Pasukan' : 'Team Briefing',
-              done: true, icon: Icons.groups_outlined),
-          _MissionPhase(time: '06:30', label: isMs ? 'Tiba di kawasan banjir' : 'Arrive at flood zone',
-              done: true, icon: Icons.location_on_outlined),
-          _MissionPhase(time: '07:15', label: isMs ? 'Penilaian paras air' : 'Water level survey',
-              done: true, icon: Icons.water_outlined),
-          _MissionPhase(time: '08:00', label: isMs ? 'Hantar laporan ke JPS' : 'Submit report to JPS',
-              done: true, icon: Icons.send_outlined),
-        ],
+      // ── Firestore Active Missions ──────────────────────────────────
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _repo.watchActiveMissions(widget.userName),
+        builder: (ctx, snap) {
+          final missions = snap.data?.docs ?? [];
+          if (missions.isEmpty) return const SizedBox.shrink();
+          return Column(
+            children: missions.map((doc) {
+              final d = doc.data();
+              final title = d['mission_title'] as String? ?? (isMs ? 'Misi Menyelamat' : 'Rescue Mission');
+              
+              final ts = d['created_at'] as Timestamp?;
+              final timeStr = ts != null 
+                  ? '${isMs ? 'Agihan:' : 'Issued:'} ${ts.toDate().toLocal().hour.toString().padLeft(2, '0')}:${ts.toDate().toLocal().minute.toString().padLeft(2, '0')}'
+                  : '';
+
+              final contactName = d['contact_name'] as String? ?? '-';
+              final phone = d['phone'] as String? ?? '-';
+              final headCount = d['head_count'] as int? ?? 1;
+              final desc = d['description'] as String? ?? (isMs ? 'Tiada penerangan' : 'No description');
+              
+              final sosTs = d['sos_created_at'] as Timestamp?;
+              final sosTimeStr = sosTs != null
+                ? '${sosTs.toDate().toLocal().hour.toString().padLeft(2, '0')}:${sosTs.toDate().toLocal().minute.toString().padLeft(2, '0')}'
+                : timeStr; // fallback to dispatch time if sos_created is missing
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.warning.withAlpha(80), width: 2),
+                    boxShadow: [BoxShadow(color: AppTheme.warning.withAlpha(20), blurRadius: 8)]),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.push(ctx, MaterialPageRoute(
+                        builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d))),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: AppTheme.warning, borderRadius: BorderRadius.circular(6)),
+                            child: const Text('AKTIF / ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                          ),
+                          const Spacer(),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(children: [
+                                const Icon(Icons.sos, size: 12, color: AppTheme.emergency),
+                                const SizedBox(width: 4),
+                                Text(sosTimeStr, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppTheme.textSecondary)),
+                              ]),
+                              if (timeStr.isNotEmpty)
+                                Text(timeStr, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                            ],
+                          ),
+                        ]),
+                        const SizedBox(height: 12),
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black)),
+                        if (d['mission_instruction'] != null && (d['mission_instruction'] as String).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              d['mission_instruction'],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        
+                        Row(children: [
+                          const Icon(Icons.people_outline, size: 16, color: AppTheme.govBlue),
+                          const SizedBox(width: 8),
+                          Text('$headCount ${isMs ? "orang" : "people"}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Row(children: [
+                          const Icon(Icons.person_outline, size: 16, color: AppTheme.govBlue),
+                          const SizedBox(width: 8),
+                          Text(contactName, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Row(children: [
+                          const Icon(Icons.phone_outlined, size: 16, color: AppTheme.govBlue),
+                          const SizedBox(width: 8),
+                          Text(phone, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                        ]),
+                        const SizedBox(height: 12),
+                        if (desc.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: AppTheme.bgBase, borderRadius: BorderRadius.circular(8)),
+                            child: Text(desc, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontStyle: FontStyle.italic)),
+                          ),
+                        ]
+                      ]),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
 
       const SizedBox(height: 16),
-      const LocText('DARI FIREBASE', 'FROM FIRESTORE',
+      const LocText('SELESAI (DARI FIREBASE)', 'COMPLETED (FROM FIRESTORE)',
           style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: 11,

@@ -7,8 +7,9 @@ import '../../app_shell.dart';
 enum UserRole { citizen, volunteer, government }
 
 class RoleSelectionScreen extends StatefulWidget {
-  final String name;
-  const RoleSelectionScreen({super.key, required this.name});
+  final String phone;
+  final String ic;
+  const RoleSelectionScreen({super.key, required this.phone, required this.ic});
   @override
   State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
 }
@@ -26,9 +27,14 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         return;
       }
     }
+    
+    final finalIc = (_selected == UserRole.volunteer && _volIdCtrl.text.trim().isNotEmpty)
+        ? _volIdCtrl.text.trim()
+        : widget.ic;
+
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => AppShell(role: _selected, userName: widget.name)),
+      MaterialPageRoute(builder: (_) => AppShell(role: _selected, phone: widget.phone, ic: finalIc)),
       (_) => false,
     );
   }
@@ -45,7 +51,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(isMs ? 'Selamat datang, ${widget.name}! 👋' : 'Welcome, ${widget.name}! 👋',
+          Text(isMs ? 'Selamat datang, ${widget.ic}! 👋' : 'Welcome, ${widget.ic}! 👋',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 22, color: AppTheme.textPrimary)),
           const SizedBox(height: 6),
           Text(isMs ? 'Bagaimanakah anda akan menggunakan FloodSense hari ini?' : 'How will you use FloodSense today?', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15)),

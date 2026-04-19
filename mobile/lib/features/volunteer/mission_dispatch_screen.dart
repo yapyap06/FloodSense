@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import 'volunteer_repository.dart';
 import '../../core/widgets/loc_text.dart';
@@ -149,7 +150,7 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
             .where('sos_id', isEqualTo: sosId)
             .get();
         for (var doc in querySnap.docs) {
-          await doc.reference.update({'status': 'RESCUED'});
+          await doc.reference.update({'status': 'RESOLVED'});
         }
       }
       _localTimer?.cancel();
@@ -254,12 +255,30 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
     final address = widget.data['address'] as String? ?? 'Unknown';
     final headCount = widget.data['head_count'] ?? '?';
     final vulnerable = (widget.data['vulnerable'] as List?)?.cast<String>() ?? [];
+    final description = widget.data['description'] as String? ?? '';
+    final situations = (widget.data['situations'] as List?)?.cast<String>() ?? [];
+    final contactName = widget.data['contact_name'] as String? ?? '-';
+    final phone = widget.data['phone'] as String? ?? '-';
+    final createdAtTs = widget.data['created_at'];
+    final String submittedAt = createdAtTs is Timestamp
+        ? _fmtTs(createdAtTs)
+        : '-';
     // Victim location from Firestore or demo fallback
     final lat = (widget.data['lat'] as num?)?.toDouble() ?? 3.0738;
     final lng = (widget.data['lng'] as num?)?.toDouble() ?? 101.5183;
     final victimPin = LatLng(lat, lng);
     // Volunteer is slightly offset (would be real GPS in production)
     final volunteerPin = LatLng(lat + 0.012, lng - 0.008);
+
+    // bilingual situation labels
+    final situationLabels = <String, String>{
+      'Trapped': isMs ? 'Terperangkap' : 'Trapped',
+      'Medical Emergency': isMs ? 'Kecemasan Perubatan' : 'Medical Emergency',
+      'Infant/Elderly': isMs ? 'Kanak-kanak/Warga Emas' : 'Infant/Elderly',
+      'Need Boat': isMs ? 'Perlu Bot' : 'Need Boat',
+      'No Food/Water': isMs ? 'Tiada Makanan/Air' : 'No Food/Water',
+      'Other': isMs ? 'Lain-lain' : 'Other',
+    };
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -344,6 +363,32 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
                 ),
               ),
             ),
+            // ── Commander's Task ─────────────────────────────────────────────
+            _sectionLabel(isMs ? 'TUGASAN KOMANDER' : "COMMANDER'S TASK"),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF9C3), // Light yellow for focus
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFACC15), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.data['mission_title'] as String? ?? (isMs ? 'Misi Menyelamat' : 'Rescue Mission'),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.data['mission_instruction'] as String? ?? (isMs ? 'Tiada arahan khusus' : 'No specific instructions provided'),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
 
             // ── Location ─────────────────────────────────────────────────────
@@ -369,7 +414,152 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
             ],
             const SizedBox(height: 16),
 
-            // ── Status ───────────────────────────────────────────────────────
+            // ── Citizen Details ──────────────────────────────────────────
+            _sectionLabel(isMs ? 'MAKLUMAT MANGSA' : 'CITIZEN DETAILS'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.govBlueLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.govBlue.withAlpha(40)),
+              ),
+              child: Column(
+                children: [
+                  _dispatchContactRow(
+                    icon: Icons.person_outline,
+                    label: isMs ? 'Nama / ID Pengguna' : 'Name / User ID',
+                    value: contactName,
+                  ),
+                  const Divider(height: 20),
+                  Row(
+                    children: [
+                      const Icon(Icons.phone_outlined, size: 16, color: AppTheme.govBlue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isMs ? 'Nombor Telefon' : 'Phone Number',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              phone,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (phone != '-')
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final uri = Uri(scheme: 'tel', path: phone);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            } else if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(isMs
+                                      ? 'Tidak dapat membuat panggilan ke $phone'
+                                      : 'Cannot place call to $phone'),
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.call, size: 14),
+                          label: Text(isMs ? 'Hubungi' : 'Call',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.hope,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (submittedAt != '-') ...[
+                    const Divider(height: 20),
+                    _dispatchContactRow(
+                      icon: Icons.access_time_outlined,
+                      label: isMs ? 'Masa SOS Dihantar' : 'SOS Submitted At',
+                      value: submittedAt,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Situations ───────────────────────────────────────────────
+            if (situations.isNotEmpty) ...[
+              _sectionLabel(isMs ? 'SITUASI' : 'SITUATIONS'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8, runSpacing: 6,
+                children: situations.map((s) {
+                  final label = situationLabels[s] ?? s;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warningLight,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.warning.withAlpha(80)),
+                    ),
+                    child: Text(label, style: const TextStyle(
+                        color: AppTheme.warning, fontSize: 12, fontWeight: FontWeight.w600)),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Description ───────────────────────────────────────────────
+            if (description.isNotEmpty) ...[
+              _sectionLabel(isMs ? 'PENERANGAN MANGSA' : 'VICTIM DESCRIPTION'),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.notes_outlined, size: 18, color: AppTheme.govBlue),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        description,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Status ────────────────────────────────────────────────
             _sectionLabel(isMs ? 'STATUS OPERASI' : 'OPERATION STATUS'),
             const SizedBox(height: 8),
             _buildMissionStepper(),
@@ -453,6 +643,46 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
       Expanded(child: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 14))),
     ]),
   );
+
+  /// Compact label+value row used inside the citizen-details card
+  Widget _dispatchContactRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppTheme.govBlue),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textMuted)),
+              const SizedBox(height: 1),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Format a Firestore Timestamp to "dd/mm/yyyy  HH:MM"
+  String _fmtTs(Timestamp ts) {
+    final dt = ts.toDate().toLocal();
+    final h = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day}/${dt.month}/${dt.year}  $h:$min';
+  }
 
   Widget _buildMissionStepper() {
     final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
