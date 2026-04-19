@@ -8,7 +8,6 @@
 | | URL |
 |---|---|
 | 🌐 **Web Application** | https://floodsense-app-653167130543.asia-southeast1.run.app |
-| 📊 **Command Centre Dashboard** | https://floodsense-dashboard-653167130543.asia-southeast1.run.app |
 | ☁️ **AI Backend API** | https://floodsense-agents-653167130543.asia-southeast1.run.app |
 
 > All services are publicly accessible on Google Cloud Run — **no login required** for the main app.
@@ -54,8 +53,6 @@ Open the **[Web Application](https://floodsense-app-653167130543.asia-southeast1
 | 🏠 **Citizen** | Tap "Warganegara" | Submit SOS with GPS, file a damage claim |
 | 🤝 **Volunteer** | Tap "Sukarelawan" | Browse SOS map, accept & complete a mission |
 | 🏛 **Government** | Tap "Pusat Arahan" → Code: `9999` | View live SOS cases, generate AI SitRep |
-
-For the **Command Centre**, visit the [Dashboard](https://floodsense-dashboard-653167130543.asia-southeast1.run.app) directly.
 
 ---
 
