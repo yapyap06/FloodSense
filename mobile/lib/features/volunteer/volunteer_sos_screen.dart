@@ -562,7 +562,7 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
           borderRadius: BorderRadius.circular(12),
           onTap: () {
             if (missionId != null) {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => MissionDispatchScreen(missionId: missionId, data: d)));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => MissionDispatchScreen(missionId: missionId, data: d, volunteerId: widget.userName)));
             }
           },
           child: Padding(
@@ -669,6 +669,7 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => MissionDispatchScreen(
         missionId: 'MIS-${c.id}',
+        volunteerId: widget.userName,
         data: {
           'sos_id': c.id,
           'address': c.address,

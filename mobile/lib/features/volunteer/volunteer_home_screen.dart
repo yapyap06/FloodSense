@@ -236,7 +236,7 @@ class VolunteerHomeScreen extends StatelessWidget {
 
             if (context.mounted) {
               Navigator.push(context, MaterialPageRoute(
-                builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d),
+                builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: userName),
               ));
             }
           },
@@ -278,9 +278,26 @@ class VolunteerHomeScreen extends StatelessWidget {
 
   Widget _buildImpactStrip() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: VolunteerRepository().watchCompletedMissions(userName),
+      stream: VolunteerRepository().watchResolvedIncidents(userName),
       builder: (context, snap) {
-        final count = snap.data?.docs.length ?? 0;
+        final docs = snap.data?.docs ?? [];
+        final count = docs.length;
+        
+        int totalPeople = 0;
+        for (var doc in docs) {
+          final hc = doc.data()['head_count'];
+          if (hc is num) {
+            totalPeople += hc.toInt();
+          } else if (hc is String) {
+            totalPeople += int.tryParse(hc) ?? 0;
+          }
+        }
+
+        // We still provide a baseline of 14 people and 5.5h if they have 0 missions, 
+        // to maintain the "Impact" feel for new volunteers, or we can just show real data.
+        // User said "is not based on both side of mission done", implying they want real count.
+        final peopleDisplay = totalPeople > 0 ? '$totalPeople' : '0';
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
@@ -302,10 +319,10 @@ class VolunteerHomeScreen extends StatelessWidget {
                   labelEn: 'Missions Done',
                   color: AppTheme.hope)),
               const _ImpactDivider(),
-              const Expanded(child: _ImpactStat(
+              Expanded(child: _ImpactStat(
                   icon: Icons.people_outline,
-                  valueMs: '14',
-                  valueEn: '14',
+                  valueMs: peopleDisplay,
+                  valueEn: peopleDisplay,
                   labelMs: 'Orang Dibantu',
                   labelEn: 'People Helped',
                   color: AppTheme.govBlue)),

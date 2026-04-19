@@ -16,7 +16,13 @@ import '../../core/widgets/loc_text.dart';
 class MissionDispatchScreen extends StatefulWidget {
   final String missionId;
   final Map<String, dynamic> data;
-  const MissionDispatchScreen({super.key, required this.missionId, required this.data});
+  final String volunteerId;
+  const MissionDispatchScreen({
+    super.key,
+    required this.missionId,
+    required this.data,
+    required this.volunteerId,
+  });
 
   @override
   State<MissionDispatchScreen> createState() => _MissionDispatchScreenState();
@@ -129,6 +135,7 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
 
   Future<void> _accept() async {
     await _repo.respondToMission(
+      widget.volunteerId,
       widget.missionId,
       'ACCEPTED',
       widget.data['sos_id'] as String? ?? '',

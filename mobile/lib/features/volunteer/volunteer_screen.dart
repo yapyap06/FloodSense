@@ -118,9 +118,9 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
             const Divider(color: Colors.white24, height: 1),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _repo.watchCompletedMissions(widget.userName),
-              builder: (ctx, missionSnap) {
-                final count = missionSnap.data?.docs.length ?? 0;
+              stream: _repo.watchResolvedIncidents(widget.userName),
+              builder: (ctx, snap) {
+                final count = snap.data?.docs.length ?? 0;
                 final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
                 return Row(
                   children: [
@@ -264,9 +264,9 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                     return;
                   }
                   Navigator.push(ctx, MaterialPageRoute(
-                      builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d)));
+                      builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: widget.userName)));
                 },
-                onDecline: () => _repo.respondToMission(doc.id, 'DECLINED', d['sos_id'] ?? ''),
+                onDecline: () => _repo.respondToMission(widget.userName, doc.id, 'DECLINED', d['sos_id'] ?? ''),
               );
             }).toList(),
           );
@@ -321,7 +321,7 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => Navigator.push(ctx, MaterialPageRoute(
-                        builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d))),
+                        builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: widget.userName))),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -406,10 +406,10 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
 
       // ── Firestore completed missions ──────────────────────────────────
       StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _repo.watchCompletedMissions(widget.userName),
+        stream: _repo.watchResolvedIncidents(widget.userName),
         builder: (ctx, snap) {
-          final missions = snap.data?.docs ?? [];
-          if (missions.isEmpty) {
+          final incidents = snap.data?.docs ?? [];
+          if (incidents.isEmpty) {
             return Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -424,8 +424,9 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
             );
           }
           return Column(
-            children: missions.map((doc) {
+            children: incidents.map((doc) {
               final d = doc.data();
+              final sosId = d['sos_id'] as String? ?? doc.id;
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
@@ -436,9 +437,9 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                   leading: const CircleAvatar(
                       backgroundColor: AppTheme.hope,
                       child: Icon(Icons.check, color: Colors.white, size: 18)),
-                  title: Text((context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Misi ' : 'Mission ') + doc.id.substring(0, 8),
+                  title: Text((context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Misi ' : 'Mission ') + sosId,
                       style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black)),
-                  subtitle: Text(d['sos_id'] ?? '',
+                  subtitle: Text(d['address_text'] ?? d['address'] ?? '',
                       style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                   trailing: IconButton(
                     icon: const Icon(Icons.badge_outlined, color: AppTheme.govBlue, size: 22),
@@ -446,7 +447,11 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                     onPressed: () => Navigator.push(ctx, MaterialPageRoute(
                       builder: (_) => ServiceCertificateScreen(
                         missionId: doc.id,
-                        data: {...d, 'volunteer_name': widget.userName},
+                        data: {
+                          ...d, 
+                          'volunteer_name': widget.userName,
+                          'head_count': d['head_count'] ?? d['headcount'] ?? 1,
+                        },
                       ),
                     )),
                   ),
