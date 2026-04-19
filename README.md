@@ -5,7 +5,7 @@
 ### 🔗 Quick Links
 | | Link |
 |---|---|
-| 📱 **Android APK** | [Download from Google Drive](https://drive.google.com/file/d/11uWIOHyn9rgJE4bH28FqogIkQssJj0jL/view?usp=sharing) |
+| 📱 **Android APK** | [Download from Google Drive](https://drive.google.com/file/d/11uWIOHyn9rgJE4bH28FqogIkQssJj0jL/view?usp=sharing) *(Updated: April 2026)* |
 | ☁️ **Live Backend API** | [https://floodsense-agents-653167130543.asia-southeast1.run.app](https://floodsense-agents-653167130543.asia-southeast1.run.app) |
 | 📖 **Interactive API Docs** | [/docs](https://floodsense-agents-653167130543.asia-southeast1.run.app/docs) |
 | 💻 **GitHub Repository** | [github.com/yapyap06/FloodSense](https://github.com/yapyap06/FloodSense) |
@@ -153,7 +153,7 @@ flutter run
 
 ### Method 1: Instant Download
 You do not need to build the app from source to test it. We have provided a pre-compiled Android APK.
-1. **[Download FloodSense.apk from Google Drive](https://drive.google.com/file/d/11uWIOHyn9rgJE4bH28FqogIkQssJj0jL/view?usp=sharing)**
+1. **[Download FloodSense.apk from Google Drive](https://drive.google.com/file/d/11uWIOHyn9rgJE4bH28FqogIkQssJj0jL/view?usp=sharing)** *(Latest build — April 2026)*
 2. Please use an **Android phone device** to download and install this file directly. You can also drag and drop it into an Android Emulator.
 
 ### Method 2: Build from Source
