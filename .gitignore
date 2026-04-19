@@ -8,6 +8,13 @@ firebase-service-account.json
 *.pem
 *.key
 
+# ─── APK / Binary builds (use Cloud Run deployments instead) ─────────────────
+*.apk
+*.ipa
+*.aab
+FloodSense.apk
+mobile/build/
+
 # ─── Python ──────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]

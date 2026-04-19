@@ -1,0 +1,10 @@
+# .gcloudignore
+.git/
+.next/
+node_modules
+**/node_modules
+.vscode/
+.idea/
+.env.local
+node_modules/**
+**/node_modules/**
