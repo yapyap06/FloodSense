@@ -85,7 +85,6 @@ cd mobile
 flutter pub get
 flutter run -d chrome
 ```
-```
 
 > **Note:** Firebase config files (`google-services.json`, `firebase_options.dart`) are excluded for security. You will need to connect your own Firebase project for local development. The live Cloud Run deployments are fully configured.
 
@@ -107,7 +106,8 @@ flutter run -d chrome
 
 ```
 FloodSense/
-├── mobile/          # Flutter Web App (Citizen + Volunteer + Government)
+├── mobile/          # Flutter Web App (Citizen + Volunteer)
+├── dashboard/       # Next.js Government Command Centre
 ├── agents/          # Python FastAPI Multi-Agent AI Backend
 ├── firestore.rules  # Database security rules
 └── README.md
