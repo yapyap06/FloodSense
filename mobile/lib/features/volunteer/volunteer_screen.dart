@@ -535,9 +535,10 @@ class _MissionOfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
     final sosId = data['sos_id'] as String? ?? '';
     final headCount = data['head_count'] as int? ?? 0;
-    final address = data['address'] as String? ?? 'Unknown Location';
+    final address = data['address'] as String? ?? (isMs ? 'Lokasi Tidak Diketahui' : 'Unknown Location');
     final distanceKm = (data['distance_km'] ?? '?').toString();
     final vulnerable = (data['vulnerable'] as List?)?.cast<String>() ?? [];
 
@@ -612,7 +613,7 @@ class _MissionOfferCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        child: const Text('Tolak', style: TextStyle(fontSize: 13)),
+                        child: Text(isMs ? 'Tolak' : 'Decline', style: const TextStyle(fontSize: 13)),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -621,7 +622,7 @@ class _MissionOfferCard extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: onAccept,
                         icon: const Icon(Icons.directions_run, size: 16),
-                        label: const Text('Terima & Pergi', style: TextStyle(fontSize: 13)),
+                        label: Text(isMs ? 'Terima & Pergi' : 'Accept & Go', style: const TextStyle(fontSize: 13)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.emergency,
                           foregroundColor: Colors.white,

@@ -277,44 +277,50 @@ class VolunteerHomeScreen extends StatelessWidget {
   }
 
   Widget _buildImpactStrip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        LocText('IMPAK ANDA HARI INI', 'YOUR IMPACT TODAY',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 11,
-                letterSpacing: 1.2, fontWeight: FontWeight.w600)),
-        SizedBox(height: 14),
-        Row(children: [
-          Expanded(child: _ImpactStat(
-              icon: Icons.check_circle_outline,
-              valueMs: '2',
-              valueEn: '2',
-              labelMs: 'Misi Selesai',
-              labelEn: 'Missions Done',
-              color: AppTheme.hope)),
-          _ImpactDivider(),
-          Expanded(child: _ImpactStat(
-              icon: Icons.people_outline,
-              valueMs: '14',
-              valueEn: '14',
-              labelMs: 'Orang Dibantu',
-              labelEn: 'People Helped',
-              color: AppTheme.govBlue)),
-          _ImpactDivider(),
-          Expanded(child: _ImpactStat(
-              icon: Icons.schedule_outlined,
-              valueMs: '5.5j',
-              valueEn: '5.5h',
-              labelMs: 'Jam Berkhidmat',
-              labelEn: 'Hours Served',
-              color: AppTheme.warning)),
-        ]),
-      ]),
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: VolunteerRepository().watchCompletedMissions(userName),
+      builder: (context, snap) {
+        final count = snap.data?.docs.length ?? 0;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const LocText('IMPAK ANDA HARI INI', 'YOUR IMPACT TODAY',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 11,
+                    letterSpacing: 1.2, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 14),
+            Row(children: [
+              Expanded(child: _ImpactStat(
+                  icon: Icons.check_circle_outline,
+                  valueMs: '$count',
+                  valueEn: '$count',
+                  labelMs: 'Misi Selesai',
+                  labelEn: 'Missions Done',
+                  color: AppTheme.hope)),
+              const _ImpactDivider(),
+              const Expanded(child: _ImpactStat(
+                  icon: Icons.people_outline,
+                  valueMs: '14',
+                  valueEn: '14',
+                  labelMs: 'Orang Dibantu',
+                  labelEn: 'People Helped',
+                  color: AppTheme.govBlue)),
+              const _ImpactDivider(),
+              const Expanded(child: _ImpactStat(
+                  icon: Icons.schedule_outlined,
+                  valueMs: '5.5j',
+                  valueEn: '5.5h',
+                  labelMs: 'Jam Berkhidmat',
+                  labelEn: 'Hours Served',
+                  color: AppTheme.warning)),
+            ]),
+          ]),
+        );
+      },
     );
   }
 
