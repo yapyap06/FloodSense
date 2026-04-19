@@ -85,13 +85,6 @@ cd mobile
 flutter pub get
 flutter run -d chrome
 ```
-
-### 4. Dashboard (Next.js)
-```bash
-cd dashboard
-npm install
-cp .env.example .env.local   # fill in your Firebase & Gemini keys
-npm run dev
 ```
 
 > **Note:** Firebase config files (`google-services.json`, `firebase_options.dart`) are excluded for security. You will need to connect your own Firebase project for local development. The live Cloud Run deployments are fully configured.
@@ -104,7 +97,7 @@ npm run dev
 |---|---|
 | **Gemini 2.0 Flash** | Citizen Agent (SOS triage), Resource Agent |
 | **Gemini 2.0 Pro** | Coordinator Agent (SitRep generation) |
-| **Google Cloud Run** | Hosts all 3 services (Web App, Dashboard, API) |
+| **Google Cloud Run** | Hosts both services (Web App, API Backend) |
 | **Firebase Firestore** | Real-time message bus across all user roles |
 | **Antigravity (DeepMind)** | AI pair-programming assistant used in development |
 
@@ -114,8 +107,7 @@ npm run dev
 
 ```
 FloodSense/
-├── mobile/          # Flutter Web App (Citizen + Volunteer)
-├── dashboard/       # Next.js Government Command Centre
+├── mobile/          # Flutter Web App (Citizen + Volunteer + Government)
 ├── agents/          # Python FastAPI Multi-Agent AI Backend
 ├── firestore.rules  # Database security rules
 └── README.md
