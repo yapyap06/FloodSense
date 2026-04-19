@@ -228,6 +228,10 @@ class _SOSTile extends StatelessWidget {
 
     final description = d['description'] as String? ?? '';
     final situations  = (d['situations'] as List?)?.cast<String>() ?? [];
+    final vulnerable  = (d['vulnerable'] as List?)?.cast<String>() ?? [];
+
+    final lat = (d['lat'] as num?)?.toDouble();
+    final lng = (d['lng'] as num?)?.toDouble();
 
     final createdAt = d['created_at'] as Timestamp?;
     final timeStr = createdAt != null
@@ -429,7 +433,10 @@ class _SOSTile extends StatelessWidget {
                               'contact_name': name,
                               'description': description,
                               'situations': situations,
+                              'vulnerable': vulnerable,
                               'sos_created_at': createdAt,
+                              if (lat != null) 'lat': lat,
+                              if (lng != null) 'lng': lng,
                               'distance_km': 2.1,
                               'created_at': FieldValue.serverTimestamp(),
                             });
