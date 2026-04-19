@@ -1,0 +1,46 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "incidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "incidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "district_id",    "order": "ASCENDING" },
+        { "fieldPath": "priority_score", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "district_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "volunteers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "readiness_toggle",  "order": "ASCENDING" },
+        { "fieldPath": "standing_consent",  "order": "ASCENDING" },
+        { "fieldPath": "status",            "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sitreps",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "district_id",  "order": "ASCENDING" },
+        { "fieldPath": "generated_at", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,20 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets (NEVER bake into image)
+.env
+*.json
+
+# Dev tools
+.git/
+.idea/
+.vscode/
+*.md

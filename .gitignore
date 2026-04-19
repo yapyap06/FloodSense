@@ -1,0 +1,65 @@
+# ─── Secrets (NEVER commit these) ────────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.*.local
+agents/.env
+firebase-service-account.json
+*.pem
+*.key
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# ─── Node / Next.js ──────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# ─── Flutter ─────────────────────────────────────────────────────────────────
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.g.dart
+*.freezed.dart
+
+# ─── Firebase ────────────────────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+*.jks
+*.keystore
+key.properties
+
+# ─── Editor ──────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.DS_Store
+Thumbs.db

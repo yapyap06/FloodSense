@@ -1,0 +1,14 @@
+{
+  "@@locale": "ms",
+  "appName": "FloodSense",
+  "homeTab": "Utama",
+  "sosTab": "Kecemasan",
+  "sopTab": "Panduan",
+  "claimTab": "Tuntutan",
+  "volunteerTab": "Sukarelawan",
+  "profileTab": "Profil",
+  "commandTab": "Pusat Arahan",
+  "ppsKioskTab": "Kiosk PPS",
+  "missionsTab": "Misi",
+  "guideTab": "Panduan"
+}

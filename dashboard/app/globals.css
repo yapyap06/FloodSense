@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ── Emergency Red & Carbon theme (matches Flutter citizen app) ── */
+  --navy:    #0A0A0A;          /* bg-base: pure carbon */
+  --surface: #141414;          /* surface: card bg */
+  --surface2: #1E1E1E;         /* surface2: elevated */
+  --border:  #2A2A2A;          /* subtle border */
+  --alert-blue: #1565C0;
+  --danger-red:    #E53935;    /* Emergency Red */
+  --warning-amber: #FFB300;    /* Amber */
+  --safe-green:    #00C853;    /* Rescue Green */
+  --safe-teal:     #00897B;
+  --accent-red:    #E53935;
+  --text-primary: #F5F5F5;
+  --text-muted:   #757575;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  background: var(--navy);
+  color: var(--text-primary);
+  overflow: hidden; /* Dashboard fits viewport */
+}
+
+/* Scrollable panels */
+.scroll-panel {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.scroll-panel::-webkit-scrollbar { width: 4px; }
+.scroll-panel::-webkit-scrollbar-track { background: transparent; }
+.scroll-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Card base */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Severity badges */
+.badge-evacuate { background: #7B1FA2; color: #fff; }
+.badge-danger    { background: var(--danger-red); color: #fff; }
+.badge-warning   { background: var(--warning-amber); color: #000; }
+.badge-watch     { background: #1565C0; color: #fff; }
+.badge-ok        { background: var(--safe-teal); color: #fff; }
+
+/* Pulse animation for CRITICAL items */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(198, 40, 40, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(198, 40, 40, 0); }
+}
+.pulse-critical { animation: pulse-ring 1.5s infinite; }
+
+/* Map container */
+#flood-map {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Skeleton loader */
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}

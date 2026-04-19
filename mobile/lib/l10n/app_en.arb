@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appName": "FloodSense",
+  "homeTab": "Home",
+  "sosTab": "SOS",
+  "sopTab": "SOP",
+  "claimTab": "Claim",
+  "volunteerTab": "Volunteer",
+  "profileTab": "Profile",
+  "commandTab": "Command",
+  "ppsKioskTab": "PPS Kiosk",
+  "missionsTab": "Missions",
+  "guideTab": "Guide"
+}
