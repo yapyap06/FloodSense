@@ -31,16 +31,17 @@ FloodSense is an end-to-end autonomous disaster response system that transitions
 ## 🏗 Architecture
 
 ```
-Flutter Web App (Cloud Run) ──┐
-Next.js Dashboard (Cloud Run) ─┼──► Firebase Firestore ◄──► FastAPI AI Agents (Cloud Run)
-                               │                              Gemini 2.0 Flash / Pro
+[Flutter Web App]  ──────────────────────────────────────────────────────────────────┐
+                                                                                      ▼
+                                                    [Firebase Firestore]  ◄──►  [FastAPI AI Agents]
+                                                                                 Gemini 2.0 Flash/Pro
 ```
 
 **Stack:**
-- **Frontend:** Flutter (Web), Next.js
+- **Frontend:** Flutter (Web)
 - **Backend:** Python, FastAPI, Google GenAI SDK (Gemini 2.0)
 - **Database:** Firebase Cloud Firestore
-- **Hosting:** Google Cloud Run (3 independent services)
+- **Hosting:** Google Cloud Run (Web App + AI Backend)
 
 ---
 
