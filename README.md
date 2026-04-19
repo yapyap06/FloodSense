@@ -68,7 +68,7 @@ graph TD
 
 ---
 
-## 🎬 Testing the App (Judges)
+## 🎬 Testing the App
 
 Open the **[Web Application](https://floodsense-app-653167130543.asia-southeast1.run.app)** and select a role:
 
