@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import '../../core/utils/pdf_download_helper.dart' if (dart.library.html) '../../core/utils/pdf_download_helper_web.dart';
 import '../../core/providers/locale_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/widgets/loc_text.dart';
 
 /// Digital Service Certificate — shown after a mission is marked COMPLETED.
