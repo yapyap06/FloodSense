@@ -22,7 +22,9 @@ def _get_db():
     global _app
     if _app is None:
         # Try service account file first, then fall back to env var
-        sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "../firebase-service-account.json")
+        sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "firebase-service-account.json")
+        if not os.path.exists(sa_path):
+            sa_path = "../firebase-service-account.json"
         # Resolve relative to this file's location if not absolute
         if not os.path.isabs(sa_path):
             base = os.path.dirname(os.path.abspath(__file__))

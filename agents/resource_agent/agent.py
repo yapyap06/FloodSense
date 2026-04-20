@@ -63,7 +63,7 @@ def check_inventory() -> list[dict]:
     prompt = SUPPLY_PROMPT.format(inventory_json=json.dumps(inventory_data, indent=2))
 
     try:
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         raw = response.text.strip().lstrip("```json").rstrip("```").strip()
         recommendations = json.loads(raw)
     except Exception as e:
@@ -100,7 +100,7 @@ Respond as JSON with item names as keys and quantities as int values.
 Include a "reasoning" key with 1-sentence justification.
 """
     try:
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         raw = response.text.strip().lstrip("```json").rstrip("```").strip()
         return json.loads(raw)
     except Exception as e:

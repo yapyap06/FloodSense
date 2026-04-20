@@ -19,7 +19,10 @@ from firebase_admin import credentials, firestore
 def _init_firebase():
     if not firebase_admin._apps:
         # Use service account if available, otherwise use ADC
-        sa_path = os.path.join(os.path.dirname(__file__), '..', 'firebase-service-account.json')
+        sa_path = os.path.join(os.path.dirname(__file__), 'firebase-service-account.json')
+        if not os.path.exists(sa_path):
+            sa_path = os.path.join(os.path.dirname(__file__), '..', 'firebase-service-account.json')
+        
         if os.path.exists(sa_path):
             cred = credentials.Certificate(sa_path)
         else:
@@ -124,7 +127,7 @@ Write exactly in this structure:
 **RECOMMENDATIONS** (3 bullet points, specific and actionable for next 15 minutes)"""
 
     response = gemini_client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-1.5-flash',
         contents=prompt,
     )
     return response.text
@@ -141,7 +144,7 @@ def save_sitrep(db, content: str, alert: dict, incidents: dict):
         'generated_at': firestore.SERVER_TIMESTAMP,
         'approved': False,
         'forwarded': False,
-        'model': 'gemini-2.5-flash',
+        'model': 'gemini-1.5-flash',
     })
     print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Sitrep saved: {sitrep_id}")
     return sitrep_id

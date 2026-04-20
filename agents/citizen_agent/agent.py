@@ -97,7 +97,7 @@ def parse_sos(raw_input: str, channel: SOSChannel, sender_phone: str | None = No
     prompt = SOS_PARSE_PROMPT.format(raw_input=raw_input)
 
     try:
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         raw = response.text.strip().lstrip("```json").rstrip("```").strip()
         data = json.loads(raw)
     except Exception as e:
@@ -160,7 +160,7 @@ def answer_sop_question(question: str, language: str = "en") -> str:
     )
 
     try:
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         return response.text.strip()
     except Exception as e:
         print(f"[CitizenAgent] RAG answer error: {e}")

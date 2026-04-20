@@ -40,7 +40,7 @@ Write a structured situation report with these exact sections:
 
 Keep it under 250 words. Use Malaysian operational terminology. Be direct and specific.`;
 
-    const model = genai.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genai.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     const content = result.response.text();
 
@@ -54,7 +54,7 @@ Keep it under 250 words. Use Malaysian operational terminology. Be direct and sp
         severity: latestAlert?.severity || "WATCH",
         active_sos: activeSOS.length,
         generated_at: new Date().toISOString(),
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
       },
     });
   } catch (err: unknown) {

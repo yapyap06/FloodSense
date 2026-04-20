@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -6,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import '../../core/providers/locale_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/widgets/loc_text.dart';
 
 /// Digital Service Certificate — shown after a mission is marked COMPLETED.
@@ -292,15 +295,23 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
         ),
       );
 
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$certId.pdf');
-      await file.writeAsBytes(await pdf.save());
+      if (kIsWeb) {
+        // Web: trigger browser download via data URI
+        final base64Str = base64Encode(await pdf.save());
+        final uri = Uri.parse('data:application/pdf;base64,$base64Str');
+        if (await canLaunchUrl(uri)) await launchUrl(uri);
+      } else {
+        // Mobile: use share_plus
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/$certId.pdf');
+        await file.writeAsBytes(await pdf.save());
 
-      // ignore: deprecated_member_use
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Sijil Perkhidmatan FloodSense: $name ($certId)',
-      );
+        // ignore: deprecated_member_use
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Sijil Perkhidmatan FloodSense: $name ($certId)',
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

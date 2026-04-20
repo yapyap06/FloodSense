@@ -86,7 +86,7 @@ def classify_gauge(gauge: dict, rainfall_mm: float = 0) -> dict | None:
 
     try:
         import json
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+        response = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
         raw = response.text.strip().lstrip("```json").rstrip("```").strip()
         return json.loads(raw)
     except Exception as e:

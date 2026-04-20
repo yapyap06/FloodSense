@@ -1,11 +1,18 @@
 import 'dart:io';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../core/data/agent_service.dart';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+
 
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
@@ -461,6 +468,12 @@ class GovHomeScreen extends StatelessWidget {
   }
 
   Future<void> _generateAndSharePDF(bool isMs) async {
+    // 1. Fetch real AI SitRep from backend
+    final sitrep = await AgentService().getLatestSitrep();
+    final realContent = sitrep?.content ?? (isMs 
+      ? 'STATUS: FASA 1 — Kejadian banjir aktif di daerah Klang.\n\n3 kes SOS kritikal menunggu operasi penyelamatan. 7 sukarelawan telah dihantar.' 
+      : 'STATUS: PHASE 1 — Active flooding in Klang district.\n\n3 critical SOS cases pending rescue. 7 volunteers dispatched.');
+
     final pdf = pw.Document();
     pdf.addPage(
       pw.Page(
@@ -469,28 +482,22 @@ class GovHomeScreen extends StatelessWidget {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(isMs ? 'LAPORAN OPERASI BENCANA - FLOODSENSE' : 'DISASTER OPERATIONS REPORT - FLOODSENSE', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+              pw.Text(isMs ? 'LAPORAN OPERASI BENCANA - FLOODSENSE' : 'DISASTER OPERATIONS REPORT - FLOODSENSE', 
+                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
+              pw.SizedBox(height: 4),
+              pw.Text('AI SITREP - ${sitrep?.severity ?? "Gemini 2.5"}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
               pw.Divider(),
               pw.SizedBox(height: 8),
               pw.Text('${isMs ? "Tarikh Janaan" : "Generated Date"}: ${DateTime.now().toLocal().toString().split('.')[0]}'),
               pw.Text(isMs ? 'Kawasan Operasi: Daerah Klang, Selangor' : 'Operations Area: Klang District, Selangor'),
-              pw.Text(isMs ? 'Tahap Kecemasan: Fasa 1 - Banjir Aktif' : 'Emergency Level: Phase 1 - Active Flood', style: const pw.TextStyle(color: PdfColors.red700)),
+              pw.Text(isMs ? 'Status: Fasa 1 (Banjir Aktif)' : 'Status: Phase 1 (Active Flood)'),
               pw.SizedBox(height: 20),
-              pw.Text(isMs ? '1. PARAS SUNGAI TERKINI:' : '1. LIVE RIVER GAUGES:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(isMs ? '  * Sg. Klang: 4.2m (BAHAYA)' : '  * Sg. Klang: 4.2m (DANGER)'),
-              pw.Text(isMs ? '  * Sg. Gombak: 3.8m (AMARAN)' : '  * Sg. Gombak: 3.8m (WARNING)'),
+              pw.Text(isMs ? 'RINGKASAN SITUASI AI:' : 'AI SITUATION SUMMARY:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 10),
-              pw.Text(isMs ? '2. STATUS BEKALAN LOGISTIK JKM:' : '2. JKM LOGISTICS SUPPLY STATUS:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(isMs ? '  * Pek Makanan: 72%' : '  * Food Packs: 72%'),
-              pw.Text(isMs ? '  * Air Bersih: 88%' : '  * Clean Water: 88%'),
-              pw.Text(isMs ? '  * Susu Bayi: 61%' : '  * Baby Formula: 61%'),
-              pw.SizedBox(height: 10),
-              pw.Text(isMs ? '3. STATUS TINDAK BALAS SUKARELAWAN:' : '3. VOLUNTEER RESPONSE STATUS:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              pw.Text(isMs ? '  * Unit Sukarelawan Bertugas: 7 unit' : '  * Active Volunteer Units: 7 units'),
-              pw.Text(isMs ? '  * Misi Diselesaikan Bantuan: 24 kes' : '  * Resolved Assistance Missions: 24 cases'),
-              pw.SizedBox(height: 30),
+              pw.Text(realContent.replaceAll('**', '').trim(), style: const pw.TextStyle(fontSize: 12, lineSpacing: 6)),
+              pw.SizedBox(height: 40),
               pw.Text(isMs ? 'Diakui Sah oleh,' : 'Verified by,'),
-              pw.SizedBox(height: 30),
+              pw.SizedBox(height: 40),
               pw.Text('......................................................'),
               pw.Text(isMs ? 'Pusat Komander Insiden NADMA' : 'NADMA Incident Commander Centre'),
             ],
@@ -499,16 +506,30 @@ class GovHomeScreen extends StatelessWidget {
       ),
     );
 
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/SITREP_Klang_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await file.writeAsBytes(await pdf.save());
+    final bytes = await pdf.save();
 
-    // ignore: deprecated_member_use
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: isMs ? 'FloodSense: Laporan Operasi Bencana (Ketua Pengarah NADMA)' : 'FloodSense: Disaster Operations Report (NADMA Commander)',
-    );
+    if (kIsWeb) {
+      // On Web, many browsers block Share.shareXFiles. Use a download data URI instead.
+      final base64String = base64Encode(bytes);
+      final url = 'data:application/pdf;base64,$base64String';
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } else {
+      // Mobile - use share_plus
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/SITREP_Klang_Report.pdf');
+      await file.writeAsBytes(bytes);
+
+      // ignore: deprecated_member_use
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: isMs ? 'FloodSense: Laporan Operasi Bencana (NADMA)' : 'FloodSense: Disaster Operations Report (NADMA)',
+      );
+    }
   }
+
 
   // ── River gauge horizontal scrolling ticker ───────────────────────────────
   Widget _buildRiverGaugeTicker(bool isMs) {
@@ -671,13 +692,27 @@ class GovHomeScreen extends StatelessWidget {
         Text(isMs ? 'Dijana automatik' : 'Auto-generated',
             style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
         const SizedBox(height: 12),
-        Text(
-          isMs
-          ? 'STATUS: FASA 1 — Kejadian banjir aktif di daerah Klang.\n\n3 kes SOS kritikal menunggu operasi penyelamatan. 7 sukarelawan telah dihantar. Tolok sungai Sg. Klang pada 4.2m (had bahaya: 4.0m). Cadangan: aktifkan 2 unit bot tambahan dari depot Bukit Rajah. PPS Stadium Shah Alam — kapasiti 36%, sesuai sebagai overflow.'
-          : 'STATUS: PHASE 1 — Active flooding in Klang district.\n\n3 critical SOS cases pending rescue. 7 volunteers dispatched. Sg. Klang river gauge at 4.2m (danger limit: 4.0m). Recommendation: activate 2 extra boat units from Bukit Rajah depot. Stadium Shah Alam shelter — 36% capacity, suitable for overflow.',
-          style: const TextStyle(color: Colors.black, fontSize: 13, height: 1.6),
+        FutureBuilder<Sitrep?>(
+          future: AgentService().getLatestSitrep(),
+          builder: (context, snap) {
+            final hasData = snap.hasData && snap.data != null;
+            final content = hasData ? snap.data!.content : (isMs
+                ? 'STATUS: FASA 1 — Kejadian banjir aktif di daerah Klang.\n\n3 kes SOS kritikal menunggu operasi penyelamatan.'
+                : 'STATUS: PHASE 1 — Active flooding in Klang district.\n\n3 critical SOS cases pending rescue.');
+            
+            return Text(
+              content.replaceAll('**', '').trim(),
+              style: TextStyle(
+                color: hasData ? Colors.black : AppTheme.textMuted,
+                fontSize: 13, 
+                height: 1.6,
+                fontStyle: hasData ? FontStyle.normal : FontStyle.italic,
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
+
         Row(children: [
           Expanded(
             flex: 3,

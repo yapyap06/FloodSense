@@ -125,6 +125,8 @@ export default function Dashboard() {
       if (data.success) {
         setSitrep(prev => ({ ...prev, content: data.sitrep.content, generated_at: { seconds: Math.floor(Date.now() / 1000) } }));
         setSitrepApproved(false);
+      } else {
+        alert("Gemini failed: " + (data.error || "Unknown error"));
       }
     } catch (e) {
       console.error("Sitrep generation failed:", e);
@@ -133,7 +135,9 @@ export default function Dashboard() {
     }
   }, [incidents, activeAlert]);
 
+
   const approveAndForward = useCallback(async () => {
+
     setForwarding(true);
     try {
       if (db && sitrep.id) {
@@ -373,6 +377,8 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={generateSitrep}
+
+
                 disabled={generatingSitrep}
                 className="px-3 py-1.5 rounded text-xs border border-[--border] hover:bg-[--surface2] transition-colors disabled:opacity-50"
                 title="Keyboard: S"

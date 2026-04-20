@@ -305,27 +305,37 @@ def get_latest_sitrep():
 
 
 @app.post("/sitrep/generate")
-async def generate_new_sitrep(background_tasks: BackgroundTasks):
-    """Triggers the Coordinator Agent to generate a new sitrep immediately."""
-    def _run():
-        try:
-            from shared.firestore_client import _get_db
-            db = _get_db()
+async def generate_new_sitrep():
+    """Generates a new AI sitrep synchronously and returns the content immediately."""
+    try:
+        from shared.firestore_client import _get_db
+        db = _get_db()
 
-            incidents_raw = db.collection("incidents").limit(50).stream()
-            incidents = [{"id": d.id, **d.to_dict()} for d in incidents_raw]
+        incidents_raw = db.collection("incidents").limit(50).stream()
+        incidents = [{"id": d.id, **d.to_dict()} for d in incidents_raw]
 
-            volunteers_raw = db.collection("volunteers").stream()
-            volunteers = [{"id": d.id, **d.to_dict()} for d in volunteers_raw]
+        volunteers_raw = db.collection("volunteers").stream()
+        volunteers = [{"id": d.id, **d.to_dict()} for d in volunteers_raw]
 
-            sitrep = generate_sitrep("Klang Valley", incidents, volunteers)
-            sitrep_id = save_sitrep(sitrep)
-            print(f"[API /sitrep/generate] Generated: {sitrep_id}")
-        except Exception as e:
-            print(f"[API /sitrep/generate] Error: {e}")
+        sitrep = generate_sitrep("Klang Valley", incidents, volunteers)
+        sitrep_id = save_sitrep(sitrep)
+        print(f"[API /sitrep/generate] Generated: {sitrep_id}")
 
-    background_tasks.add_task(_run)
-    return {"success": True, "message": "Sitrep generation started. Check /sitrep/latest in ~5s."}
+        return {
+            "success": True,
+            "sitrep_id": sitrep_id,
+            "district": sitrep.district_id,
+            "severity": sitrep.severity.value,
+            "active_sos": sitrep.active_sos,
+            "dispatched": sitrep.dispatched,
+            "resolved": sitrep.resolved,
+            "content": sitrep.content,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "model": "gemini-1.5-flash",
+        }
+    except Exception as e:
+        print(f"[API /sitrep/generate] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── RESOURCE AGENT: Inventory ─────────────────────────────────────────────────

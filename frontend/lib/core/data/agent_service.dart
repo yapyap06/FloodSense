@@ -12,10 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class AgentService {
-  // Change this to your deployed server URL in production
-  static const String _baseUrl = 'http://10.0.2.2:8000'; // Android emulator → localhost
-  // static const String _baseUrl = 'http://localhost:8000'; // Web / desktop
-  // static const String _baseUrl = 'https://your-cloud-run-url.run.app'; // Production
+  static const String _baseUrl = 'https://floodsense-agents-653167130543.asia-southeast1.run.app';
 
   static final AgentService _instance = AgentService._internal();
   factory AgentService() => _instance;
