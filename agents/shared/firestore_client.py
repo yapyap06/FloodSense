@@ -18,6 +18,11 @@ from firebase_admin import credentials, firestore
 # ── Initialise Admin SDK (only once) ──────────────────────────────────────────
 _app = None
 
+# The Firebase/Firestore project where all FloodSense data lives.
+# This must be set explicitly so Cloud Run (which runs under a different GCP
+# project: bui8ld-with-ai) still connects to the correct database.
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "floodsense-app")
+
 def _get_db():
     global _app
     if _app is None:
@@ -33,14 +38,17 @@ def _get_db():
         if os.path.exists(sa_path):
             cred = credentials.Certificate(sa_path)
             print(f"[Firestore] Using service account: {sa_path}")
+            _app = firebase_admin.initialize_app(cred)
         else:
             # Fallback: Application Default Credentials
+            # Explicitly pass project_id so we always hit the correct Firestore
+            # database even when running on a different GCP project (e.g. bui8ld-with-ai)
             cred = credentials.ApplicationDefault()
-            print("[Firestore] Using Application Default Credentials")
-
-        _app = firebase_admin.initialize_app(cred)
+            print(f"[Firestore] Using Application Default Credentials → project: {FIREBASE_PROJECT_ID}")
+            _app = firebase_admin.initialize_app(cred, {"projectId": FIREBASE_PROJECT_ID})
 
     return firestore.client()
+
 
 
 # ── Public API used by all agents ─────────────────────────────────────────────
