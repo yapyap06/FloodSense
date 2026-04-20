@@ -11,7 +11,9 @@ env/
 
 # Secrets (NEVER bake into image)
 .env
-*.json
+# Allowing specific JSON needed for firestore auth
+# *.json
+
 
 # Dev tools
 .git/
