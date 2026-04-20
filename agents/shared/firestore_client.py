@@ -26,28 +26,30 @@ FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "floodsense-app")
 def _get_db():
     global _app
     if _app is None:
-        # Try service account file first, then fall back to env var
-        sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "firebase-service-account.json")
-        if not os.path.exists(sa_path):
-            sa_path = "../firebase-service-account.json"
-        # Resolve relative to this file's location if not absolute
-        if not os.path.isabs(sa_path):
-            base = os.path.dirname(os.path.abspath(__file__))
-            sa_path = os.path.normpath(os.path.join(base, sa_path))
+        # Resolve path to agents/ root (one level up from shared/)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sa_path = os.path.join(base_dir, "firebase-service-account.json")
+        
+        # Override if env var exists
+        env_sa = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if env_sa:
+            sa_path = env_sa
 
         if os.path.exists(sa_path):
             cred = credentials.Certificate(sa_path)
-            print(f"[Firestore] Using service account: {sa_path}")
+            # Use the project ID from the JSON file itself
             _app = firebase_admin.initialize_app(cred)
+            print(f"[Firestore] Initialised with service account: {sa_path}")
         else:
-            # Fallback: Application Default Credentials
+            # Fallback: Application Default Credentials (e.g. on Cloud Run)
+            cred = credentials.ApplicationDefault()
             # Explicitly pass project_id so we always hit the correct Firestore
             # database even when running on a different GCP project (e.g. bui8ld-with-ai)
-            cred = credentials.ApplicationDefault()
-            print(f"[Firestore] Using Application Default Credentials → project: {FIREBASE_PROJECT_ID}")
+            print(f"[Firestore] Initialised with ADC → project: {FIREBASE_PROJECT_ID}")
             _app = firebase_admin.initialize_app(cred, {"projectId": FIREBASE_PROJECT_ID})
 
     return firestore.client()
+
 
 
 
