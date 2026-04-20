@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
+import '../../core/utils/pdf_download_helper.dart' if (dart.library.html) '../../core/utils/pdf_download_helper_web.dart';
 import '../../core/providers/locale_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -296,10 +297,8 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
       );
 
       if (kIsWeb) {
-        // Web: trigger browser download via data URI
-        final base64Str = base64Encode(await pdf.save());
-        final uri = Uri.parse('data:application/pdf;base64,$base64Str');
-        if (await canLaunchUrl(uri)) await launchUrl(uri);
+        // Web: direct blob download via html.AnchorElement
+        downloadPdfWeb(await pdf.save(), '$certId.pdf');
       } else {
         // Mobile: use share_plus
         final dir = await getTemporaryDirectory();

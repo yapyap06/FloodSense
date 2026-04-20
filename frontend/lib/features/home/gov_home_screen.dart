@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/data/agent_service.dart';
+import '../../core/utils/pdf_download_helper.dart' if (dart.library.html) '../../core/utils/pdf_download_helper_web.dart';
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -509,13 +510,8 @@ class GovHomeScreen extends StatelessWidget {
     final bytes = await pdf.save();
 
     if (kIsWeb) {
-      // On Web, many browsers block Share.shareXFiles. Use a download data URI instead.
-      final base64String = base64Encode(bytes);
-      final url = 'data:application/pdf;base64,$base64String';
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      }
+      // On Web, use Blob URLs via direct html wrapper to overcome browser data URI blocking
+      downloadPdfWeb(bytes, 'SITREP_Klang_Report.pdf');
     } else {
       // Mobile - use share_plus
       final dir = await getTemporaryDirectory();
