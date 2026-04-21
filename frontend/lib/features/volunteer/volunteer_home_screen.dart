@@ -206,7 +206,8 @@ class VolunteerHomeScreen extends StatelessWidget {
 
         final doc = offers.first;
         final d = doc.data();
-        final address = d['address'] as String? ?? (context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Lokasi tidak diketahui' : 'Location unknown');
+        final rawTitle = d['mission_title'] as String?;
+        final missionTitle = (rawTitle == null || rawTitle.trim().isEmpty) ? '-' : rawTitle.trim();
         final pax = d['head_count']?.toString() ?? '?';
         final distance = d['distance_km']?.toString() ?? '?';
 
@@ -260,7 +261,7 @@ class VolunteerHomeScreen extends StatelessWidget {
                     style: TextStyle(color: AppTheme.warning, fontWeight: FontWeight.w800,
                         fontSize: 12, letterSpacing: 0.5)),
                 const SizedBox(height: 2),
-                Text(address,
+                Text(missionTitle,
                     style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600,
                         fontSize: 13)),
                 LocText(

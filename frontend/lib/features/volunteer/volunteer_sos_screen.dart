@@ -238,9 +238,14 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
               final volLng = _volPosition?.longitude ?? _fallbackCenter.longitude;
               final distKm = _roughDistKm(volLat, volLng, docLat, docLng);
 
+              String displayAddress = d['address_text'] as String? ?? '';
+              if (displayAddress.trim().isEmpty || displayAddress.trim() == '-' || displayAddress.trim() == '—') {
+                displayAddress = '${docLat.toStringAsFixed(5)}, ${docLng.toStringAsFixed(5)}';
+              }
+
               liveCases.add(_SOSCase(
                 id: d['sos_id'] ?? doc.id,
-                address: d['address_text'] ?? (isMs ? 'Lokasi tidak diketahui' : 'Location unknown'),
+                address: displayAddress,
                 pax: d['head_count'] ?? 1,
                 vulnerable: vul,
                 urgency: urgencyStr,
@@ -262,7 +267,14 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
           final String volState = _getMalaysianState(_volPosition ?? _fallbackCenter);
           
           final allCases = liveCases.where((c) {
-             return double.parse(c.distanceKm) < 500.0; // relaxed for demo purposes
+             // Extract state from the document in the loop above? Yes.
+             // But for existing data without 'state' field, we show them if they are close enough (< 100km)
+             // to avoid blank screen during migration.
+             if (c.state != null) {
+               return c.state == volState;
+             }
+             // Fallback for old data
+             return double.parse(c.distanceKm) < 100.0;
           }).toList();
 
           // Sort: nearest first
@@ -452,42 +464,32 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
         ),
       ),
       // Compact case list below map
-      if (context.watch<ActiveMissionProvider>().activeMission != null)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-          child: _buildPriorityMissionCard(
-            context.watch<ActiveMissionProvider>().activeMission!, 
-            context.watch<ActiveMissionProvider>().missionId, 
-            isMs
-          ),
-        ),
-      if (cases.isNotEmpty)
-        Container(
-          height: 140,
-          color: Colors.white,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemCount: cases.length,
-            itemBuilder: (_, i) {
-              final c = cases[i];
-              return GestureDetector(
-                onTap: () => _openDispatch(context, c),
-                child: Container(
-                  width: 220,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: c.urgencyColor.withAlpha(10),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: c.urgencyColor.withAlpha(80)),
-                  ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                            color: c.urgencyColor.withAlpha(20),
+      Container(
+        height: 140,
+        color: Colors.white,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemCount: cases.length,
+          itemBuilder: (_, i) {
+            final c = cases[i];
+            return GestureDetector(
+              onTap: () => _openDispatch(context, c),
+              child: Container(
+                width: 220,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: c.urgencyColor.withAlpha(10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.urgencyColor.withAlpha(80)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: c.urgencyColor.withAlpha(20),
                           borderRadius: BorderRadius.circular(6)),
                       child: Text(c.urgency,
                           style: TextStyle(color: c.urgencyColor,
@@ -554,10 +556,10 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
 
     return Container(
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFEF08A), // Bright Yellow priority box
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.emergency.withAlpha(60)),
-          boxShadow: [BoxShadow(color: AppTheme.emergency.withAlpha(15), blurRadius: 8)]),
+          border: Border.all(color: const Color(0xFFEAB308), width: 2),
+          boxShadow: [BoxShadow(color: const Color(0xFFEAB308).withAlpha(40), blurRadius: 10)]),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
@@ -574,20 +576,20 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
               Row(children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: AppTheme.emergencyLight, borderRadius: BorderRadius.circular(6)),
-                  child: const Text('TAWARAN MISI / PRIORITY', style: TextStyle(color: AppTheme.emergency, fontSize: 10, fontWeight: FontWeight.w800)),
+                  decoration: BoxDecoration(color: const Color(0xFFCA8A04), borderRadius: BorderRadius.circular(6)),
+                  child: const Text('PRIORITY / ASSIGNED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                 ),
                 const Spacer(),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Row(children: [
-                      const Icon(Icons.sos, size: 12, color: AppTheme.emergency),
+                      const Icon(Icons.sos, size: 12, color: Color(0xFF991B1B)),
                       const SizedBox(width: 4),
-                      Text(sosTimeStr, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppTheme.textSecondary)),
+                      Text(sosTimeStr, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Color(0xFF991B1B))),
                     ]),
                     if (timeStr.isNotEmpty)
-                      Text(timeStr, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                      Text(timeStr, style: const TextStyle(fontSize: 10, color: Color(0xFFA16207), fontWeight: FontWeight.w500)),
                   ],
                 ),
               ]),

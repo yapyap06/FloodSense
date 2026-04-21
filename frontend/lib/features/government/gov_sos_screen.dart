@@ -222,16 +222,21 @@ class _SOSTile extends StatelessWidget {
         ?? d['phone'] as String?
         ?? '';
 
-    final address = d['address_text'] as String?
-        ?? d['address'] as String?
-        ?? '—';
+    final lat = (d['lat'] as num?)?.toDouble();
+    final lng = (d['lng'] as num?)?.toDouble();
+
+    String address = d['address_text'] as String? ?? d['address'] as String? ?? '';
+    if (address.trim().isEmpty || address.trim() == '-' || address.trim() == '—') {
+      if (lat != null && lng != null) {
+        address = '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+      } else {
+        address = isMs ? 'Lokasi GPS tidak diketahui' : 'GPS location unknown';
+      }
+    }
 
     final description = d['description'] as String? ?? '';
     final situations  = (d['situations'] as List?)?.cast<String>() ?? [];
     final vulnerable  = (d['vulnerable'] as List?)?.cast<String>() ?? [];
-
-    final lat = (d['lat'] as num?)?.toDouble();
-    final lng = (d['lng'] as num?)?.toDouble();
 
     final createdAt = d['created_at'] as Timestamp?;
     final timeStr = createdAt != null
