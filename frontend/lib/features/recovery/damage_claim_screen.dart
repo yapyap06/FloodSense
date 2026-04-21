@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -444,15 +446,26 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
               ),
             );
           }
-          // LIVE COLOR THUMBNAIL using Image.file
+          // LIVE COLOR THUMBNAIL — works on both web and mobile
           return Stack(children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(_photos[i].path),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
+              child: FutureBuilder<Uint8List>(
+                future: _photos[i].readAsBytes(),
+                builder: (_, snap) {
+                  if (snap.hasData) {
+                    return Image.memory(
+                      snap.data!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    );
+                  }
+                  return Container(
+                    color: AppTheme.surface,
+                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  );
+                },
               ),
             ),
             // Remove button
