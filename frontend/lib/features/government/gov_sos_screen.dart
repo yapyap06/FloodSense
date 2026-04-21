@@ -532,14 +532,19 @@ class _DispatchDialog extends StatefulWidget {
 class _DispatchDialogState extends State<_DispatchDialog> {
   final _titleCtrl = TextEditingController();
   final _taskCtrl  = TextEditingController();
+  final _manualIdCtrl = TextEditingController();
   String? _selectedVolunteerId;
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _taskCtrl.dispose();
+    _manualIdCtrl.dispose();
     super.dispose();
   }
+
+  String get _effectiveVolunteerId =>
+      _manualIdCtrl.text.trim().isNotEmpty ? _manualIdCtrl.text.trim() : (_selectedVolunteerId ?? '');
 
   @override
   Widget build(BuildContext context) {
@@ -551,9 +556,22 @@ class _DispatchDialogState extends State<_DispatchDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Available volunteers from Firestore ─────────────────────────
-            Text(widget.isMs ? 'Pilih Sukarelawan:' : 'Select Volunteer:',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            // ── Manual ID entry ──────────────────────────────────────────────
+            TextField(
+              controller: _manualIdCtrl,
+              onChanged: (_) => setState(() => _selectedVolunteerId = null),
+              decoration: InputDecoration(
+                labelText: widget.isMs ? 'ID Sukarelawan (taip terus)' : 'Volunteer ID (type directly)',
+                hintText: 'e.g. yap123',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.badge_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // ── OR pick from list ────────────────────────────────────────────
+            Text(widget.isMs ? '— atau pilih dari senarai —' : '— or pick from list —',
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                textAlign: TextAlign.center),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
@@ -568,15 +586,15 @@ class _DispatchDialogState extends State<_DispatchDialog> {
                 }
                 if (vols.isEmpty) {
                   return Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: AppTheme.warningLight,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       widget.isMs
-                          ? 'Tiada sukarelawan tersedia. Notis akan dihantar apabila ada.'
-                          : 'No available volunteers right now. You may still enter an ID.',
+                          ? 'Tiada sukarelawan tersedia sekarang.'
+                          : 'No available volunteers right now.',
                       style: const TextStyle(fontSize: 12, color: AppTheme.warning),
                     ),
                   );
@@ -586,12 +604,15 @@ class _DispatchDialogState extends State<_DispatchDialog> {
                     final d = doc.data();
                     final name = d['name'] as String? ?? doc.id;
                     final skills = (d['skills'] as List?)?.cast<String>() ?? [];
-                    final selected = _selectedVolunteerId == doc.id;
+                    final selected = _selectedVolunteerId == doc.id && _manualIdCtrl.text.trim().isEmpty;
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedVolunteerId = doc.id),
+                      onTap: () => setState(() {
+                        _selectedVolunteerId = doc.id;
+                        _manualIdCtrl.clear();
+                      }),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: selected ? AppTheme.govBlue.withAlpha(15) : Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -602,21 +623,21 @@ class _DispatchDialogState extends State<_DispatchDialog> {
                         ),
                         child: Row(children: [
                           CircleAvatar(
-                            radius: 16,
+                            radius: 14,
                             backgroundColor: selected ? AppTheme.govBlue : AppTheme.border,
                             child: Text(
                               name.isNotEmpty ? name[0].toUpperCase() : 'V',
-                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.black)),
-                            Text(doc.id, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                            Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.black)),
+                            Text(doc.id, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
                             if (skills.isNotEmpty)
-                              Text(skills.take(3).join(' · '), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                              Text(skills.take(3).join(' · '), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
                           ])),
-                          if (selected) const Icon(Icons.check_circle, color: AppTheme.govBlue, size: 20),
+                          if (selected) const Icon(Icons.check_circle, color: AppTheme.govBlue, size: 18),
                         ]),
                       ),
                     );
@@ -651,12 +672,13 @@ class _DispatchDialogState extends State<_DispatchDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(widget.isMs ? 'Batal' : 'Cancel', style: const TextStyle(color: AppTheme.textSecondary)),
+          child: Text(widget.isMs ? 'Batal' : 'Cancel',
+              style: const TextStyle(color: AppTheme.textSecondary)),
         ),
         FilledButton(
-          onPressed: _selectedVolunteerId == null ? null : () {
+          onPressed: _effectiveVolunteerId.isEmpty ? null : () {
             Navigator.pop(context, {
-              'volunteer_id': _selectedVolunteerId!,
+              'volunteer_id': _effectiveVolunteerId,
               'mission_title': _titleCtrl.text.trim().isEmpty
                   ? (widget.isMs ? 'Misi Menyelamat' : 'Rescue Mission')
                   : _titleCtrl.text.trim(),

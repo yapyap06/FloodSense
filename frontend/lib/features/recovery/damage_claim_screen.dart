@@ -277,16 +277,16 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
   }
 
   Future<void> _submit() async {
-    // Receipts are optional in Malaysia as long as photos are provided.
-    // We already require photos in Step 1, so no block needed here.
-    
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
     if (!_declarationChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sila tandai kotak pengisytiharan untuk bersetuju / Please tick the declaration box.',
-              style: TextStyle(color: Colors.white)),
+        SnackBar(
+          content: Text(isMs
+              ? 'Sila tandai kotak pengisytiharan untuk bersetuju.'
+              : 'Please tick the declaration box to agree.',
+              style: const TextStyle(color: Colors.white)),
           backgroundColor: AppTheme.emergency,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
@@ -295,11 +295,13 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
     // Mandatory: user must type the final RM amount
     if (_finalAmountCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your final claim amount (RM) before submitting.',
-              style: TextStyle(color: Colors.white)),
+        SnackBar(
+          content: Text(isMs
+              ? 'Sila masukkan jumlah tuntutan akhir (RM) sebelum menghantar.'
+              : 'Please enter your final claim amount (RM) before submitting.',
+              style: const TextStyle(color: Colors.white)),
           backgroundColor: AppTheme.emergency,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
@@ -343,7 +345,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
       });
       // Do not await the future, allow Firestore offline persistence to handle syncing in the background.
       setState(() { _submitted = true; _analyzing = false; _lastClaimId = claimId; });
-      // Show success dialog FIRST Ã¢â‚¬â€ use builder context (dialogCtx) so pop() works correctly
+      // Show success dialog FIRST — use builder context (dialogCtx) so pop() works correctly
       if (mounted) {
         await showDialog<void>(
           context: context,
@@ -358,15 +360,17 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
                 child: const Icon(Icons.check_circle_outline, color: AppTheme.hope, size: 32),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Claim Received!',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.black),
+              Text(
+                isMs ? 'Tuntutan Diterima!' : 'Claim Received!',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.black),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Our officers will verify your photos. This usually takes 2\u20133 days. We will notify you here once the status is updated.',
-                style: TextStyle(color: Color(0xFF4B5563), fontSize: 13, height: 1.5),
+              Text(
+                isMs
+                    ? 'Pegawai kami akan mengesahkan gambar anda. Biasanya mengambil masa 2–3 hari. Kami akan memaklumkan anda di sini setelah status dikemaskini.'
+                    : 'Our officers will verify your photos. This usually takes 2\u20133 days. We will notify you here once the status is updated.',
+                style: const TextStyle(color: Color(0xFF4B5563), fontSize: 13, height: 1.5),
                 textAlign: TextAlign.center,
               ),
             ]),
@@ -374,7 +378,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  // FIX: Use dialogCtx.pop() Ã¢â‚¬â€ closes only the dialog
+                  // FIX: Use dialogCtx.pop() — closes only the dialog
                   onPressed: () => Navigator.of(dialogCtx).pop(),
                   child: const LocText('Faham', 'Understood'),
                 ),
@@ -646,22 +650,25 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
       const SizedBox(height: 10),
 
       // Ã¢â€â‚¬Ã¢â€â‚¬ Column headers Ã¢â€â‚¬Ã¢â€â‚¬
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Row(children: [
-          Expanded(flex: 4, child: Text('Category',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary, letterSpacing: 0.5))),
-          SizedBox(width: 8),
-          Expanded(flex: 5, child: Text('Item',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary, letterSpacing: 0.5))),
-          SizedBox(width: 8),
-          SizedBox(width: 88, child: Center(child: Text('QTY',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary, letterSpacing: 0.5)))),
-          SizedBox(width: 36),
-        ]),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Builder(builder: (context) {
+          final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
+          return Row(children: [
+            Expanded(flex: 4, child: Text(isMs ? 'Kategori' : 'Category',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary, letterSpacing: 0.5))),
+            const SizedBox(width: 8),
+            Expanded(flex: 5, child: Text(isMs ? 'Barangan' : 'Item',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary, letterSpacing: 0.5))),
+            const SizedBox(width: 8),
+            SizedBox(width: 88, child: Center(child: Text('QTY',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary, letterSpacing: 0.5)))),
+            const SizedBox(width: 36),
+          ]);
+        }),
       ),
       const SizedBox(height: 6),
 
@@ -676,16 +683,19 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
               // Add row button
               return Padding(
                 padding: const EdgeInsets.only(top: 4, bottom: 16),
-                child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _claimRows.add({'category': '', 'itemKey': '', 'qty': 1})),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Item'),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.govBlue),
-                    foregroundColor: AppTheme.govBlue,
-                    minimumSize: const Size(double.infinity, 44),
-                  ),
-                ),
+                child: Builder(builder: (context) {
+                  final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
+                  return OutlinedButton.icon(
+                    onPressed: () => setState(() => _claimRows.add({'category': '', 'itemKey': '', 'qty': 1})),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(isMs ? 'Tambah Barangan' : 'Add Item'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppTheme.govBlue),
+                      foregroundColor: AppTheme.govBlue,
+                      minimumSize: const Size(double.infinity, 44),
+                    ),
+                  );
+                }),
               );
             }
 
@@ -697,7 +707,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
             return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
               // Category button
               Expanded(flex: 4, child: _SelectorButton(
-                label: cat.isEmpty ? 'Category' : cat,
+                label: cat.isEmpty ? (context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Kategori' : 'Category') : cat,
                 isPlaceholder: cat.isEmpty,
                 icon: Icons.category_outlined,
                 onTap: () => _showCategoryPicker(ctx, i),
@@ -705,7 +715,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
               const SizedBox(width: 8),
               // Item button
               Expanded(flex: 5, child: _SelectorButton(
-                label: itemKey.isEmpty ? 'Item' : _displayName(itemKey),
+                label: itemKey.isEmpty ? (context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Barangan' : 'Item') : _displayName(itemKey),
                 isPlaceholder: itemKey.isEmpty,
                 icon: Icons.inventory_2_outlined,
                 enabled: cat.isNotEmpty,
@@ -772,14 +782,17 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
                 color: _receipts.isEmpty ? const Color(0xFF7C3AED) : AppTheme.hope,
                 size: 18,
               ),
-              label: Text(
-                _receipts.isEmpty
-                    ? 'Upload Receipt / Resit (Optional)'
-                    : '${_receipts.length} receipt${_receipts.length > 1 ? "s" : ""} uploaded (OK)',
-                style: TextStyle(
-                    color: _receipts.isEmpty ? const Color(0xFF7C3AED) : AppTheme.hope,
-                    fontSize: 13),
-              ),
+              label: Builder(builder: (context) {
+                  final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
+                  return Text(
+                    _receipts.isEmpty
+                        ? (isMs ? 'Muat Naik Resit (Pilihan)' : 'Upload Receipt (Optional)')
+                        : (isMs ? '${_receipts.length} resit dimuat naik (OK)' : '${_receipts.length} receipt${_receipts.length > 1 ? "s" : ""} uploaded (OK)'),
+                    style: TextStyle(
+                        color: _receipts.isEmpty ? const Color(0xFF7C3AED) : AppTheme.hope,
+                        fontSize: 13),
+                  );
+                }),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
                     color: _receipts.isEmpty ? const Color(0xFF7C3AED) : AppTheme.hope),
@@ -814,18 +827,26 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
       context: ctx,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Column(mainAxisSize: MainAxisSize.min, children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text('Select Category', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        ),
-        ..._categories.map((cat) => ListTile(
-          leading: Icon(_categoryIcon(cat), color: AppTheme.govBlue),
-          title: Text(cat, style: const TextStyle(fontWeight: FontWeight.w600)),
-          onTap: () => Navigator.pop(ctx, cat),
-        )),
-        const SizedBox(height: 12),
-      ]),
+      builder: (sheetCtx) {
+        final isMs = sheetCtx.watch<LocaleProvider>().locale.languageCode == 'ms';
+        final catLabels = isMs ? {
+          'Furniture': 'Perabot', 'Electronics': 'Elektronik',
+          'Gadgets': 'Gajet', 'Essential': 'Barangan Penting', 'Structural': 'Struktur',
+        } : <String, String>{};
+        return Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(isMs ? 'Pilih Kategori' : 'Select Category',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          ),
+          ..._categories.map((cat) => ListTile(
+            leading: Icon(_categoryIcon(cat), color: AppTheme.govBlue),
+            title: Text(catLabels[cat] ?? cat, style: const TextStyle(fontWeight: FontWeight.w600)),
+            onTap: () => Navigator.pop(sheetCtx, cat),
+          )),
+          const SizedBox(height: 12),
+        ]);
+      },
     );
     if (picked != null) {
       setState(() {
@@ -930,13 +951,15 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
   }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Step 4: Review & Submit Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-  Widget _buildStep4() => SingleChildScrollView(
+  Widget _buildStep4() {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
+    return SingleChildScrollView(
     padding: const EdgeInsets.all(20),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Step 4: Review & Submit',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Colors.black)),
+      Text(isMs ? 'Langkah 4: Semakan & Hantar' : 'Step 4: Review & Submit',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Colors.black)),
       const SizedBox(height: 16),
-      _ReviewRow(label: 'Photos', value: '${_photos.length} uploaded'),
+      _ReviewRow(label: isMs ? 'Gambar' : 'Photos', value: isMs ? '${_photos.length} dimuat naik' : '${_photos.length} uploaded'),
       // Receipt uploads Ã¢â‚¬â€ shown as required
       Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -969,16 +992,23 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           ),
         ]),
       ),
-      _ReviewRow(label: 'Paras Air / Flood Depth', value: _floodDepth),
       _ReviewRow(
-        label: 'Keterangan Kerosakan / Losses Described', 
-        value: _lossesCtrl.text.trim().isEmpty ? 'Tiada / Not Provided' : 'Disertakan / Provided'
+        label: isMs ? 'Paras Air' : 'Flood Depth',
+        value: _floodDepth,
+      ),
+      _ReviewRow(
+        label: isMs ? 'Keterangan Kerosakan' : 'Losses Described',
+        value: _lossesCtrl.text.trim().isEmpty
+            ? (isMs ? 'Tiada' : 'Not Provided')
+            : (isMs ? 'Disertakan' : 'Provided'),
       ),
       if (_assessments.isNotEmpty)
-        _ReviewRow(label: 'AI Estimate Total', value: 'RM $_totalCost'),
+        _ReviewRow(label: isMs ? 'Anggaran AI' : 'AI Estimate Total', value: 'RM $_totalCost'),
       _ReviewRow(
-        label: 'Your Final Claim (RM)',
-        value: _finalAmountCtrl.text.isEmpty ? '(!) Not entered' : 'RM ${_finalAmountCtrl.text}',
+        label: isMs ? 'Jumlah Tuntutan Anda (RM)' : 'Your Final Claim (RM)',
+        value: _finalAmountCtrl.text.isEmpty
+            ? (isMs ? '(!) Belum diisi' : '(!) Not entered')
+            : 'RM ${_finalAmountCtrl.text}',
       ),
       const SizedBox(height: 16),
       // Legal declaration
@@ -1005,10 +1035,12 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'With this submission, I declare all photos and information provided are truthful under Akta Keterangan 1950. I understand that while receipts are optional, clear photographic evidence of damage is mandatory for appraisal. False claims will result in legal action.',
-                    style: TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.5),
+                    isMs
+                        ? 'Dengan penghantaran ini, saya mengisytiharkan semua foto dan maklumat yang diberikan adalah benar di bawah Akta Keterangan 1950. Saya faham bahawa walaupun resit adalah pilihan, bukti foto kerosakan yang jelas adalah wajib. Tuntutan palsu akan mengakibatkan tindakan undang-undang.'
+                        : 'With this submission, I declare all photos and information provided are truthful under Akta Keterangan 1950. I understand that while receipts are optional, clear photographic evidence of damage is mandatory for appraisal. False claims will result in legal action.',
+                    style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.5),
                   ),
                 ),
               ],
@@ -1025,30 +1057,33 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.hope),
           child: _analyzing
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('SUBMIT CLAIM'),
+              : Text(isMs ? 'HANTAR TUNTUTAN' : 'SUBMIT CLAIM'),
         )),
       ]),
     ]),
   );
+  }
 
-  Widget _buildSuccess() => Center(child: Padding(
+  Widget _buildSuccess() {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
+    return Center(child: Padding(
     padding: const EdgeInsets.all(32),
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       const CircleAvatar(radius: 40, backgroundColor: AppTheme.hope,
           child: Icon(Icons.check_circle, color: Colors.white, size: 48)),
       const SizedBox(height: 24),
-      const Text('Tuntutan Dihantar!',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.black)),
+      Text(isMs ? 'Tuntutan Dihantar!' : 'Claim Submitted!',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.black)),
       const SizedBox(height: 8),
-      const Text('JKM officer will contact you within 72 hours.',
+      Text(isMs ? 'Pegawai JKM akan menghubungi anda dalam masa 72 jam.' : 'JKM officer will contact you within 72 hours.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF4B5563))),
+          style: const TextStyle(color: Color(0xFF4B5563))),
       if (_lastClaimId != null) ...[
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: AppTheme.govBlueLight, borderRadius: BorderRadius.circular(10)),
-          child: Text('Claim ID: $_lastClaimId',
+          child: Text('${isMs ? 'ID Tuntutan' : 'Claim ID'}: $_lastClaimId',
               style: const TextStyle(color: AppTheme.govBlue, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
         ),
         const SizedBox(height: 12),
@@ -1057,26 +1092,24 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Claim ID: $_lastClaimId\nBawa ID ini ke kaunter JKM untuk pengesahan.',
+                  '${isMs ? 'ID Tuntutan' : 'Claim ID'}: $_lastClaimId\n${isMs ? 'Bawa ID ini ke kaunter JKM untuk pengesahan.' : 'Present this ID at the JKM counter for verification.'}',
                   style: const TextStyle(fontFamily: 'monospace'),
                 ),
                 backgroundColor: AppTheme.govBlue,
                 duration: const Duration(seconds: 5),
-                action: SnackBarAction(
-                  label: 'OK',
-                  textColor: Colors.white,
-                  onPressed: () {},
-                ),
+                action: SnackBarAction(label: 'OK', textColor: Colors.white, onPressed: () {}),
               ),
             );
           },
           icon: const Icon(Icons.assignment_outlined, color: AppTheme.govBlue),
-          label: const Text('View Claim ID', style: TextStyle(color: AppTheme.govBlue)),
+          label: Text(isMs ? 'Lihat ID Tuntutan' : 'View Claim ID',
+              style: const TextStyle(color: AppTheme.govBlue)),
         ),
       ],
     ]),
   ));
-}
+  } // end _buildSuccess
+} // end _NewClaimWizardState
 
 
 // â”€â”€â”€ Live Claims Tab (StreamBuilder) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
