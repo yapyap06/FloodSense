@@ -36,6 +36,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
   LatLng? _currentPosition;
   bool _gpsLoading = false;
   String? _gpsError;
+  bool _isManualLocation = false;
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
@@ -131,7 +132,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     try {
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.medium, // More reliable for initial lock than high
           timeLimit: Duration(seconds: 15),
         ),
       );
@@ -139,12 +140,14 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
         setState(() {
           _currentPosition = LatLng(pos.latitude, pos.longitude);
           _gpsLoading = false;
+          _gpsError = null; // Clear any previous error
+          _isManualLocation = false; // Reset if fresh GPS success
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _gpsError = 'Could not get GPS — using area fallback.';
+          _gpsError = 'GPS connection failed — using area fallback.';
           _gpsLoading = false;
           _currentPosition = _fallbackLatLng;
         });
@@ -673,13 +676,23 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
         Text(
           _gpsLoading
               ? (isMs ? 'Mendapatkan GPS...' : 'Getting your GPS position...')
-              : _gpsError != null
-                  ? _gpsError!
-                  : (isMs ? 'Pin GPS dikunci di lokasi anda' : 'GPS pin placed at your current position'),
+              : _isManualLocation
+                  ? (isMs ? 'Lokasi dilaras secara manual' : 'Location manually adjusted')
+                  : (_currentPosition != null && _currentPosition != _fallbackLatLng)
+                      ? (isMs ? 'GPS dikesan & dikunci' : 'GPS detected & locked')
+                      : (isMs ? 'Menggunakan fallback kawasan' : 'Using area fallback'),
           style: TextStyle(
-              color: _gpsError != null ? AppTheme.warning : AppTheme.textSecondary,
-              fontSize: 14),
+              color: (_gpsError != null && !_isManualLocation) ? AppTheme.warning : _isManualLocation ? AppTheme.govBlue : AppTheme.textSecondary,
+              fontSize: 14,
+              fontWeight: _isManualLocation ? FontWeight.w600 : FontWeight.normal),
         ),
+        if (!_gpsLoading) ...[
+          const SizedBox(height: 4),
+          Text(
+            isMs ? 'Sentuh peta untuk melaras pin' : 'Tap the map to adjust the pin',
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontStyle: FontStyle.italic),
+          ),
+        ],
         const SizedBox(height: 20),
 
         // ── Embedded OpenStreetMap ─────────────────────────────────────────
@@ -703,7 +716,15 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
                           ]),
                     ),
                   )
-                : _OSMLocationMap(location: loc),
+                : _OSMLocationMap(
+                    location: loc,
+                    onTap: (point) {
+                      setState(() {
+                        _currentPosition = point;
+                        _isManualLocation = true;
+                      });
+                    },
+                  ),
           ),
         ),
         const SizedBox(height: 14),
@@ -1196,7 +1217,8 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
 /// OpenStreetMap location widget — shows SOS pin centred on [location].
 class _OSMLocationMap extends StatefulWidget {
   final LatLng location;
-  const _OSMLocationMap({required this.location});
+  final Function(LatLng)? onTap;
+  const _OSMLocationMap({required this.location, this.onTap});
 
   @override
   State<_OSMLocationMap> createState() => _OSMLocationMapState();
@@ -1212,6 +1234,11 @@ class _OSMLocationMapState extends State<_OSMLocationMap> {
       options: MapOptions(
         initialCenter: widget.location,
         initialZoom: 16,
+        onTap: (tapPosition, point) {
+          if (widget.onTap != null) {
+            widget.onTap!(point);
+          }
+        },
       ),
       children: [
         TileLayer(
