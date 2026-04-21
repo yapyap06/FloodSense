@@ -121,7 +121,8 @@ class _CitizenPPSRegisterScreenState extends State<CitizenPPSRegisterScreen> {
   @override
   void initState() {
     super.initState();
-    _nameCtrl.text = widget.userName;
+    _nameCtrl.text = ''; // User must fill this themselves
+    _icCtrl.text = widget.userName; // Pre-filled with digits from login page
     _locateUser();
   }
 
@@ -321,7 +322,7 @@ class _CitizenPPSRegisterScreenState extends State<CitizenPPSRegisterScreen> {
         _buildTextField(
           controller: _nameCtrl,
           label: isMs ? 'Nama Penuh' : 'Full Name',
-          hint: 'e.g. Ahmad bin Abdullah',
+          hint: isMs ? 'cth. Ahmad bin Abdullah' : 'e.g. Ahmad bin Abdullah',
           icon: Icons.person_outline,
         ),
         const SizedBox(height: 12),
@@ -331,6 +332,7 @@ class _CitizenPPSRegisterScreenState extends State<CitizenPPSRegisterScreen> {
           hint: 'e.g. 890101-14-5531',
           icon: Icons.credit_card_outlined,
           keyboardType: TextInputType.number,
+          readOnly: true, // IC is unchangeable
         ),
         const SizedBox(height: 24),
 
@@ -516,17 +518,23 @@ class _CitizenPPSRegisterScreenState extends State<CitizenPPSRegisterScreen> {
     required String hint,
     required IconData icon,
     TextInputType? keyboardType,
+    bool readOnly = false,
   }) {
     return TextField(
       controller: controller,
+      readOnly: readOnly,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.black, fontSize: 15),
+      style: TextStyle(
+        color: readOnly ? AppTheme.textSecondary : Colors.black, 
+        fontSize: 15,
+        fontWeight: readOnly ? FontWeight.w500 : FontWeight.normal,
+      ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: AppTheme.govBlue, size: 20),
+        prefixIcon: Icon(icon, color: readOnly ? AppTheme.textMuted : AppTheme.govBlue, size: 20),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: readOnly ? const Color(0xFFF3F4F6) : Colors.white,
         labelStyle: const TextStyle(color: AppTheme.textSecondary),
         hintStyle: const TextStyle(color: AppTheme.textMuted),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
