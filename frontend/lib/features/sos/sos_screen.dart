@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -108,9 +109,10 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
     }
-    if (perm == LocationPermission.deniedForever) {
+    if (perm == LocationPermission.deniedForever ||
+        perm == LocationPermission.denied) {
       setState(() {
-        _gpsError = 'Location permission denied. Enable it in Settings.';
+        _gpsError = 'Location permission denied. Please allow location access in your browser and try again.';
         _gpsLoading = false;
         _currentPosition = _fallbackLatLng;
       });
@@ -128,26 +130,42 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
       return;
     }
 
-    // 3. Get position
+    // 3. Build platform-specific settings.
+    // On web: WebSettings with maximumAge: Duration.zero forces the browser
+    // to request a FRESH position — not a stale cached/IP-based estimate.
+    // On mobile: use high-accuracy native GPS.
+    final LocationSettings locationSettings;
+    if (kIsWeb) {
+      locationSettings = WebSettings(
+        accuracy: LocationAccuracy.high,
+        maximumAge: Duration.zero, // ← critical: forces fresh reading
+        distanceFilter: 0,
+      );
+    } else {
+      locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 20),
+      );
+    }
+
+    // 4. Get position
     try {
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium, // More reliable for initial lock than high
-          timeLimit: Duration(seconds: 15),
-        ),
+        locationSettings: locationSettings,
       );
       if (mounted) {
         setState(() {
           _currentPosition = LatLng(pos.latitude, pos.longitude);
           _gpsLoading = false;
-          _gpsError = null; // Clear any previous error
-          _isManualLocation = false; // Reset if fresh GPS success
+          _gpsError = null;
+          _isManualLocation = false;
         });
       }
     } catch (e) {
+      debugPrint('[SOSScreen] GPS error: $e');
       if (mounted) {
         setState(() {
-          _gpsError = 'GPS connection failed — using area fallback.';
+          _gpsError = 'GPS failed — tap the map to set your location manually.';
           _gpsLoading = false;
           _currentPosition = _fallbackLatLng;
         });
