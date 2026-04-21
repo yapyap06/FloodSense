@@ -264,7 +264,7 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
                     return;
                   }
                   Navigator.push(ctx, MaterialPageRoute(
-                      builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: widget.userName, autoAccepted: true)));
+                      builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: widget.userName)));
                 },
                 onDecline: () => _repo.respondToMission(widget.userName, doc.id, 'DECLINED', d['sos_id'] ?? ''),
               );

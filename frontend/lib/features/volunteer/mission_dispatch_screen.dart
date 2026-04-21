@@ -17,15 +17,11 @@ class MissionDispatchScreen extends StatefulWidget {
   final String missionId;
   final Map<String, dynamic> data;
   final String volunteerId;
-  /// If true, the volunteer was dispatched by command centre — auto-accept.
-  /// If false (volunteer tapped from SOS list), show preview first.
-  final bool autoAccepted;
   const MissionDispatchScreen({
     super.key,
     required this.missionId,
     required this.data,
     required this.volunteerId,
-    this.autoAccepted = false,
   });
 
   @override
@@ -35,7 +31,6 @@ class MissionDispatchScreen extends StatefulWidget {
 class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
   final _repo = VolunteerRepository();
   bool _completing = false;
-  bool _hasAccepted = false; // volunteer pressed Accept button
   int _missionStep = 0; // 0 = Accepted, 1 = Arrived
   Timer? _localTimer;
   Duration _elapsed = Duration.zero;
@@ -45,15 +40,15 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.autoAccepted) {
-      // Dispatched by command centre — auto-accept immediately
-      _hasAccepted = true;
-      _startLocalTimer();
+    _startLocalTimer();
+    // Only auto-accept if this is a real commander-dispatched mission.
+    // SOS-screen self-initiated opens use prefix 'MIS-' and should NOT
+    // auto-accept because the volunteer only tapped to VIEW, not accept.
+    if (!widget.missionId.startsWith('MIS-')) {
       _accept();
-      _listenToCancellation();
-      _startGPSStream();
     }
-    // else: volunteer tapped from SOS list — show preview first, no side effects
+    _listenToCancellation();
+    _startGPSStream();
   }
 
   void _startGPSStream() {
@@ -150,21 +145,6 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
       'ACCEPTED',
       widget.data['sos_id'] as String? ?? '',
     );
-  }
-
-  /// Called when volunteer explicitly taps the Accept button from the preview.
-  Future<void> _acceptAndProceed() async {
-    setState(() => _hasAccepted = true);
-    _startLocalTimer();
-    await _accept();
-    _listenToCancellation();
-    _startGPSStream();
-  }
-
-  /// Called when volunteer declines from the preview.
-  void _declineAndBack() {
-    Navigator.pop(context);
-    // No Firestore writes — incident stays PENDING
   }
 
   Future<void> _markComplete() async {
@@ -289,6 +269,11 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
   Future<void> _nextStep() async {
     if (_missionStep == 0) {
       if (mounted) setState(() => _missionStep = 1);
+      // For self-initiated SOS taps (MIS- prefix), only accept when volunteer
+      // confirms they are physically going to the location (I Already Arrived).
+      if (widget.missionId.startsWith('MIS-')) {
+        await _accept();
+      }
     } else {
       await _markComplete();
     }
@@ -297,140 +282,18 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
   @override
   Widget build(BuildContext context) {
     final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
-
-    final address = widget.data['address'] as String? ?? (isMs ? 'Lokasi tidak diketahui' : 'Unknown location');
-    final headCount = widget.data['head_count'] ?? 1;
-    final vulnerable = (widget.data['vulnerable'] as List?)?.cast<String>() ?? [];
-    final description = widget.data['description'] as String? ?? '';
-    final situations = (widget.data['situations'] as List?)?.cast<String>() ?? [];
-    final contactName = widget.data['contact_name'] as String? ?? '-';
-    final phone = widget.data['phone'] as String? ?? '-';
-
-    // ── PREVIEW SCREEN (before volunteer accepts) ──────────────────────────
-    if (!_hasAccepted) {
-      return Scaffold(
-        backgroundColor: AppTheme.bgBase,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            // Back button = decline, no Firestore writes
-            onPressed: _declineAndBack,
-          ),
-          title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(isMs ? 'Butiran SOS' : 'SOS Details',
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 16)),
-            Text(isMs ? 'Semak sebelum terima' : 'Review before accepting',
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-          ]),
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Urgency header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.emergencyLight,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.emergency.withAlpha(60)),
-              ),
-              child: Row(children: [
-                const Icon(Icons.sos, color: AppTheme.emergency, size: 32),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(isMs ? 'Permintaan Bantuan SOS' : 'SOS Help Request',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.emergency)),
-                  Text(widget.data['sos_id'] as String? ?? '',
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                ])),
-              ]),
-            ),
-            const SizedBox(height: 16),
-
-            // Details card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _PreviewRow(icon: Icons.location_on_outlined, color: AppTheme.emergency,
-                    label: isMs ? 'Lokasi' : 'Location', value: address),
-                const Divider(height: 20),
-                _PreviewRow(icon: Icons.people_outline, color: AppTheme.govBlue,
-                    label: isMs ? 'Bilangan Orang' : 'People Count',
-                    value: '$headCount ${isMs ? "orang" : "people"}'),
-                if (vulnerable.isNotEmpty) ...[ const Divider(height: 20),
-                  _PreviewRow(icon: Icons.accessibility_new, color: AppTheme.warning,
-                      label: isMs ? 'Rentan' : 'Vulnerable', value: vulnerable.join(', '))],
-                if (situations.isNotEmpty) ...[ const Divider(height: 20),
-                  _PreviewRow(icon: Icons.warning_amber_outlined, color: AppTheme.warning,
-                      label: isMs ? 'Situasi' : 'Situations', value: situations.join(', '))],
-                if (description.isNotEmpty) ...[ const Divider(height: 20),
-                  _PreviewRow(icon: Icons.notes_outlined, color: AppTheme.textSecondary,
-                      label: isMs ? 'Penerangan' : 'Description', value: description)],
-                const Divider(height: 20),
-                _PreviewRow(icon: Icons.person_outline, color: AppTheme.govBlue,
-                    label: isMs ? 'Kenalan' : 'Contact', value: contactName),
-                const Divider(height: 20),
-                _PreviewRow(icon: Icons.phone_outlined, color: AppTheme.hope,
-                    label: isMs ? 'Telefon' : 'Phone', value: phone),
-              ]),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Action buttons ─────────────────────────────────────────────
-            Text(isMs ? 'Adakah anda ingin menerima misi ini?' : 'Do you want to accept this mission?',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.black)),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _declineAndBack,
-                  icon: const Icon(Icons.close, color: AppTheme.emergency),
-                  label: Text(isMs ? 'Tidak, Kembali' : 'No, Go Back',
-                      style: const TextStyle(color: AppTheme.emergency, fontWeight: FontWeight.w700)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.emergency),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _acceptAndProceed,
-                  icon: const Icon(Icons.check, color: Colors.white),
-                  label: Text(isMs ? 'Ya, Terima Misi' : 'Yes, Accept',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.hope,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 8),
-            Text(
-              isMs ? '⚠ Menekan "Ya, Terima Misi" akan menetapkan anda sebagai penyelamat untuk kes ini.'
-                   : '⚠ Pressing "Yes, Accept" will assign you as the rescuer for this case.',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-            ),
-          ]),
-        ),
-      );
-    }
-
-    // ── ACTIVE MISSION SCREEN (after volunteer accepts) ────────────────────
     final elapsed = _elapsed;
     final m = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
     final elapsedStr = '${elapsed.inHours > 0 ? '${elapsed.inHours}:' : ''}$m:$s';
 
+    final address = widget.data['address'] as String? ?? 'Unknown';
+    final headCount = widget.data['head_count'] ?? '?';
+    final vulnerable = (widget.data['vulnerable'] as List?)?.cast<String>() ?? [];
+    final description = widget.data['description'] as String? ?? '';
+    final situations = (widget.data['situations'] as List?)?.cast<String>() ?? [];
+    final contactName = widget.data['contact_name'] as String? ?? '-';
+    final phone = widget.data['phone'] as String? ?? '-';
     final createdAtTs = widget.data['created_at'];
     final String submittedAt = createdAtTs is Timestamp
         ? _fmtTs(createdAtTs)
@@ -914,23 +777,4 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
       ),
     );
   }
-}
-
-/// Simple info row used in the preview screen before acceptance.
-class _PreviewRow extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label, value;
-  const _PreviewRow({required this.icon, required this.color, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Icon(icon, color: color, size: 18),
-    const SizedBox(width: 10),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 2),
-      Text(value, style: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.w600)),
-    ])),
-  ]);
 }
