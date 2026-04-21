@@ -663,8 +663,8 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
                     color: AppTheme.textSecondary, letterSpacing: 0.5))),
             const SizedBox(width: 8),
-            SizedBox(width: 88, child: Center(child: Text('QTY',
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+            const SizedBox(width: 88, child: Center(child: Text('QTY',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
                     color: AppTheme.textSecondary, letterSpacing: 0.5)))),
             const SizedBox(width: 36),
           ]);
@@ -1478,10 +1478,10 @@ class _ClaimDetailSheet extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: AppTheme.emergency.withAlpha(15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.emergency.withAlpha(40))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Icon(Icons.info_outline, color: AppTheme.emergency, size: 18),
-                  const SizedBox(width: 8),
-                  const LocText('Sebab Penolakan', 'Rejection Reason', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.emergency)),
+                const Row(children: [
+                  Icon(Icons.info_outline, color: AppTheme.emergency, size: 18),
+                  SizedBox(width: 8),
+                  LocText('Sebab Penolakan', 'Rejection Reason', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.emergency)),
                 ]),
                 const SizedBox(height: 8),
                 Text(reason, style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4)),

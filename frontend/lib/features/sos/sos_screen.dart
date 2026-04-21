@@ -150,9 +150,9 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
         distanceFilter: 0,
       );
     } else {
-      locationSettings = LocationSettings(
+      locationSettings = const LocationSettings(
         accuracy: LocationAccuracy.best,
-        timeLimit: const Duration(seconds: 20),
+        timeLimit: Duration(seconds: 20),
       );
     }
 
