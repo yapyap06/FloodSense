@@ -450,23 +450,19 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           return Stack(children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: FutureBuilder<Uint8List>(
-                future: _photos[i].readAsBytes(),
-                builder: (_, snap) {
-                  if (snap.hasData) {
-                    return Image.memory(
-                      snap.data!,
+              child: kIsWeb
+                  ? Image.network(
+                      _photos[i].path,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
-                    );
-                  }
-                  return Container(
-                    color: AppTheme.surface,
-                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                  );
-                },
-              ),
+                    )
+                  : Image.file(
+                      File(_photos[i].path),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
             ),
             // Remove button
             Positioned(
