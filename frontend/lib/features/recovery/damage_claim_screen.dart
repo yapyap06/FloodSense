@@ -1148,6 +1148,7 @@ class _MyClaimsLive extends StatelessWidget {
                 docId: doc.id,
                 claimId: d['claim_id'] ?? doc.id,
                 status: d['status'] ?? 'UNDER_REVIEW',
+                rejectionReason: d['rejection_reason'] as String?,
                 totalCost: (d['total_estimated_cost_myr'] as num?)?.toInt() ?? 0,
                 date: dateStr,
                 depth: d['flood_depth'] ?? '—',
@@ -1172,9 +1173,10 @@ class _MyClaimsLive extends StatelessWidget {
 
 class _LiveClaimCard extends StatefulWidget {
   final String docId, claimId, status, date, depth;
+  final String? rejectionReason;
   final int totalCost;
   const _LiveClaimCard({required this.docId, required this.claimId, required this.status,
-      required this.totalCost, required this.date, required this.depth});
+      this.rejectionReason, required this.totalCost, required this.date, required this.depth});
 
   @override
   State<_LiveClaimCard> createState() => _LiveClaimCardState();
@@ -1315,8 +1317,15 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
           ]),
         ] else if (status == 'REJECTED') ...[
           const SizedBox(height: 8),
-          const LocText('Sebab: Alamat di luar zon banjir.', 'Reason: Address is outside designated flood zone for this event.',
-              style: TextStyle(color: AppTheme.emergency, fontSize: 12)),
+          widget.rejectionReason?.isNotEmpty == true
+            ? Text(
+                context.watch<LocaleProvider>().locale.languageCode == 'ms' 
+                  ? 'Sebab: ${widget.rejectionReason}'
+                  : 'Reason: ${widget.rejectionReason}',
+                style: const TextStyle(color: AppTheme.emergency, fontSize: 12)
+              )
+            : const LocText('Sebab: Alamat di luar zon banjir.', 'Reason: Address is outside designated flood zone for this event.',
+                style: TextStyle(color: AppTheme.emergency, fontSize: 12)),
         ],
 
         const SizedBox(height: 12),
