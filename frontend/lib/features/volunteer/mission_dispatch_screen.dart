@@ -287,7 +287,22 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
     final s = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
     final elapsedStr = '${elapsed.inHours > 0 ? '${elapsed.inHours}:' : ''}$m:$s';
 
-    final address = widget.data['address'] as String? ?? 'Unknown';
+    final lat = (widget.data['lat'] as num?)?.toDouble();
+    final lng = (widget.data['lng'] as num?)?.toDouble();
+    String address = (widget.data['address_text'] as String? ?? widget.data['address'] as String? ?? '').trim();
+    bool hasAlpha = RegExp(r'[a-zA-Z0-9]').hasMatch(address);
+    bool isUnknown = !hasAlpha || 
+                     address.toLowerCase().contains('unknown') || 
+                     address.toLowerCase().contains('tidak diketahui') ||
+                     address.toLowerCase() == 'null';
+    
+    if (isUnknown) {
+      if (lat != null && lng != null) {
+        address = 'GPS (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)})';
+      } else {
+        address = isMs ? 'Lokasi GPS tidak diketahui' : 'GPS location unknown';
+      }
+    }
     final headCount = widget.data['head_count'] ?? '?';
     final vulnerable = (widget.data['vulnerable'] as List?)?.cast<String>() ?? [];
     final description = widget.data['description'] as String? ?? '';

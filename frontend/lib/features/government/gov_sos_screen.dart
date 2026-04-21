@@ -226,15 +226,15 @@ class _SOSTile extends StatelessWidget {
     final lng = (d['lng'] as num?)?.toDouble();
 
     String address = (d['address_text'] as String? ?? d['address'] as String? ?? '').trim();
-    bool isUnknown = address.isEmpty || 
-                     address == '-' || 
-                     address == '—' || 
+    bool hasAlpha = RegExp(r'[a-zA-Z0-9]').hasMatch(address);
+    bool isUnknown = !hasAlpha || 
                      address.toLowerCase().contains('unknown') || 
-                     address.toLowerCase().contains('tidak diketahui');
+                     address.toLowerCase().contains('tidak diketahui') ||
+                     address.toLowerCase() == 'null';
     
     if (isUnknown) {
       if (lat != null && lng != null) {
-        address = '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+        address = 'GPS (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)})';
       } else {
         address = isMs ? 'Lokasi GPS tidak diketahui' : 'GPS location unknown';
       }

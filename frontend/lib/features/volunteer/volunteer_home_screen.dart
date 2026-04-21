@@ -207,7 +207,18 @@ class VolunteerHomeScreen extends StatelessWidget {
         final doc = offers.first;
         final d = doc.data();
         final rawTitle = d['mission_title'] as String?;
-        final addrStr = d['address'] as String? ?? d['address_text'] as String? ?? '-';
+        final lat = (d['lat'] as num?)?.toDouble();
+        final lng = (d['lng'] as num?)?.toDouble();
+        String addrStr = (d['address'] as String? ?? d['address_text'] as String? ?? '').trim();
+        bool isUnknown = !RegExp(r'[a-zA-Z0-9]').hasMatch(addrStr) || 
+                         addrStr.toLowerCase().contains('unknown');
+        
+        if (isUnknown && lat != null && lng != null) {
+          addrStr = 'GPS (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)})';
+        } else if (addrStr.isEmpty) {
+          addrStr = '-';
+        }
+
         final missionTitle = (rawTitle == null || rawTitle.trim().isEmpty || rawTitle.trim() == '-') 
             ? addrStr 
             : rawTitle.trim();

@@ -238,15 +238,19 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
               final volLng = _volPosition?.longitude ?? _fallbackCenter.longitude;
               final distKm = _roughDistKm(volLat, volLng, docLat, docLng);
 
-              String displayAddress = (d['address_text'] as String? ?? '').trim();
-              bool isUnknown = displayAddress.isEmpty || 
-                               displayAddress == '-' || 
-                               displayAddress == '—' || 
+              String displayAddress = (d['address_text'] as String? ?? d['address'] as String? ?? '').trim();
+              bool hasAlpha = RegExp(r'[a-zA-Z0-9]').hasMatch(displayAddress);
+              bool isUnknown = !hasAlpha || 
                                displayAddress.toLowerCase().contains('unknown') || 
-                               displayAddress.toLowerCase().contains('tidak diketahui');
+                               displayAddress.toLowerCase().contains('tidak diketahui') ||
+                               displayAddress.toLowerCase() == 'null';
               
               if (isUnknown) {
-                displayAddress = '${docLat.toStringAsFixed(5)}, ${docLng.toStringAsFixed(5)}';
+                if (docLat != 0 && docLng != 0) {
+                  displayAddress = 'GPS (${docLat.toStringAsFixed(5)}, ${docLng.toStringAsFixed(5)})';
+                } else {
+                   displayAddress = isMs ? 'Lokasi tidak diketahui' : 'Location unknown';
+                }
               }
 
               liveCases.add(_SOSCase(

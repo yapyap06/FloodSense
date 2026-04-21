@@ -383,7 +383,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     }
     final address = _manualLocationCtrl.text.trim().isNotEmpty
         ? _manualLocationCtrl.text.trim()
-        : 'GPS (${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)})';
+        : (_searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : 'GPS (${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)})');
     final description = _descriptionCtrl.text.trim();
     final rawMessage =
         'SOS! ${sits.join(', ')}. People: $_peopleCount. ${description.isNotEmpty ? 'Notes: $description. ' : ''}Location: $address. Lat: ${loc.latitude}, Lng: ${loc.longitude}.';
@@ -413,6 +413,8 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
                 'headcount': _peopleCount,
                 'description': description,
                 'situations': sits.toList(),
+                'address': address,
+                'address_text': address,
               });
             }
           }).catchError((_) {});
