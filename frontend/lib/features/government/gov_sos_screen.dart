@@ -225,8 +225,14 @@ class _SOSTile extends StatelessWidget {
     final lat = (d['lat'] as num?)?.toDouble();
     final lng = (d['lng'] as num?)?.toDouble();
 
-    String address = d['address_text'] as String? ?? d['address'] as String? ?? '';
-    if (address.trim().isEmpty || address.trim() == '-' || address.trim() == '—') {
+    String address = (d['address_text'] as String? ?? d['address'] as String? ?? '').trim();
+    bool isUnknown = address.isEmpty || 
+                     address == '-' || 
+                     address == '—' || 
+                     address.toLowerCase().contains('unknown') || 
+                     address.toLowerCase().contains('tidak diketahui');
+    
+    if (isUnknown) {
       if (lat != null && lng != null) {
         address = '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
       } else {

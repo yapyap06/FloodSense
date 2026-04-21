@@ -207,7 +207,10 @@ class VolunteerHomeScreen extends StatelessWidget {
         final doc = offers.first;
         final d = doc.data();
         final rawTitle = d['mission_title'] as String?;
-        final missionTitle = (rawTitle == null || rawTitle.trim().isEmpty) ? '-' : rawTitle.trim();
+        final addrStr = d['address'] as String? ?? d['address_text'] as String? ?? '-';
+        final missionTitle = (rawTitle == null || rawTitle.trim().isEmpty || rawTitle.trim() == '-') 
+            ? addrStr 
+            : rawTitle.trim();
         final pax = d['head_count']?.toString() ?? '?';
         final distance = d['distance_km']?.toString() ?? '?';
 

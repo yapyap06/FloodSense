@@ -238,8 +238,14 @@ class _VolunteerSOSScreenState extends State<VolunteerSOSScreen> {
               final volLng = _volPosition?.longitude ?? _fallbackCenter.longitude;
               final distKm = _roughDistKm(volLat, volLng, docLat, docLng);
 
-              String displayAddress = d['address_text'] as String? ?? '';
-              if (displayAddress.trim().isEmpty || displayAddress.trim() == '-' || displayAddress.trim() == '—') {
+              String displayAddress = (d['address_text'] as String? ?? '').trim();
+              bool isUnknown = displayAddress.isEmpty || 
+                               displayAddress == '-' || 
+                               displayAddress == '—' || 
+                               displayAddress.toLowerCase().contains('unknown') || 
+                               displayAddress.toLowerCase().contains('tidak diketahui');
+              
+              if (isUnknown) {
                 displayAddress = '${docLat.toStringAsFixed(5)}, ${docLng.toStringAsFixed(5)}';
               }
 
