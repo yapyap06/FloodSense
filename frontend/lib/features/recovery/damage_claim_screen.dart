@@ -1239,6 +1239,7 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
         date: widget.date,
         depth: widget.depth,
         totalCost: widget.totalCost,
+        rejectionReason: widget.rejectionReason,
       ),
     );
   }
@@ -1322,10 +1323,10 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
                 context.watch<LocaleProvider>().locale.languageCode == 'ms' 
                   ? 'Sebab: ${widget.rejectionReason}'
                   : 'Reason: ${widget.rejectionReason}',
-                style: const TextStyle(color: AppTheme.emergency, fontSize: 12)
+                style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold)
               )
-            : const LocText('Sebab: Alamat di luar zon banjir.', 'Reason: Address is outside designated flood zone for this event.',
-                style: TextStyle(color: AppTheme.emergency, fontSize: 12)),
+            : const LocText('[Fallback] Sebab: Alamat di luar zon banjir.', '[Fallback] Reason: Address is outside designated flood zone for this event.',
+                style: TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
 
         const SizedBox(height: 12),
@@ -1375,9 +1376,11 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
 class _ClaimDetailSheet extends StatelessWidget {
   final String docId, claimId, status, date, depth;
   final int totalCost;
+  final String? rejectionReason;
   const _ClaimDetailSheet({
     required this.docId, required this.claimId, required this.status,
     required this.date, required this.depth, required this.totalCost,
+    this.rejectionReason,
   });
 
   @override
@@ -1393,7 +1396,10 @@ class _ClaimDetailSheet extends StatelessWidget {
     if (docId.isEmpty) return _buildContent(context, statusLabel, statusColor, statusIcon, null);
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('damage_claims').doc(docId).snapshots(),
-      builder: (context, snap) => _buildContent(context, statusLabel, statusColor, statusIcon, snap.data?.data()),
+      builder: (context, snap) {
+        final d = snap.data?.data();
+        return _buildContent(context, statusLabel, statusColor, statusIcon, d);
+      },
     );
   }
 
@@ -1404,6 +1410,7 @@ class _ClaimDetailSheet extends StatelessWidget {
     final description = data?['losses_description'] as String? ?? '';
     final floodDepth = data?['flood_depth'] as String? ?? depth;
     final amount = (data?['total_amount'] as num?)?.toInt() ?? totalCost;
+    final reason = data?['rejection_reason'] as String? ?? rejectionReason;
 
     return DraggableScrollableSheet(
       expand: false, initialChildSize: 0.85, maxChildSize: 0.97, minChildSize: 0.5,
@@ -1432,6 +1439,22 @@ class _ClaimDetailSheet extends StatelessWidget {
                 ])),
             ]),
           ]),
+          if (status == 'REJECTED' && reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppTheme.emergency.withAlpha(15), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.emergency.withAlpha(40))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(Icons.info_outline, color: AppTheme.emergency, size: 18),
+                  const SizedBox(width: 8),
+                  const LocText('Sebab Penolakan', 'Rejection Reason', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.emergency)),
+                ]),
+                const SizedBox(height: 8),
+                Text(reason, style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4)),
+              ]),
+            ),
+          ],
           const SizedBox(height: 20), const Divider(height: 1), const SizedBox(height: 20),
           _DetailRow(icon: Icons.water, label: 'Flood Depth', value: floodDepth),
           _DetailRow(icon: Icons.photo_library_outlined, label: 'Photos Submitted', value: '${photos.isNotEmpty ? photos.length : (data?['photo_count'] ?? 0)} photo(s)'),

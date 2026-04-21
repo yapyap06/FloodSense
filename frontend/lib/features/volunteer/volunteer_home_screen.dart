@@ -278,7 +278,7 @@ class VolunteerHomeScreen extends StatelessWidget {
 
   Widget _buildImpactStrip() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: VolunteerRepository().watchResolvedIncidents(userName),
+      stream: VolunteerRepository().watchCompletedMissions(userName),
       builder: (context, snap) {
         final docs = snap.data?.docs ?? [];
         final count = docs.length;
@@ -293,9 +293,6 @@ class VolunteerHomeScreen extends StatelessWidget {
           }
         }
 
-        // We still provide a baseline of 14 people and 5.5h if they have 0 missions, 
-        // to maintain the "Impact" feel for new volunteers, or we can just show real data.
-        // User said "is not based on both side of mission done", implying they want real count.
         final peopleDisplay = totalPeople > 0 ? '$totalPeople' : '0';
 
         return Container(
