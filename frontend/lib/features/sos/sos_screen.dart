@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
@@ -5,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/data/agent_service.dart';
@@ -28,6 +30,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
   final _otherCtrl = TextEditingController();
   final _manualLocationCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
   bool _showOtherField = false;
   bool _sending = false;
   String? _incidentId;
@@ -38,6 +41,10 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
   bool _gpsLoading = false;
   String? _gpsError;
   bool _isManualLocation = false;
+
+  // Address search state
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _searchLoading = false;
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
@@ -97,6 +104,7 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
     _otherCtrl.dispose();
     _manualLocationCtrl.dispose();
     _descriptionCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -170,6 +178,38 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
           _currentPosition = _fallbackLatLng;
         });
       }
+    }
+  }
+
+  // ── Address Search (Nominatim OSM geocoding) ──────────────────────────────
+  Future<void> _searchAddress() async {
+    final query = _searchCtrl.text.trim();
+    if (query.isEmpty) return;
+    setState(() { _searchLoading = true; _searchResults = []; });
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/search'
+        '?q=${Uri.encodeQueryComponent(query)}'
+        '&format=json&limit=5&countrycodes=my',
+      );
+      final resp = await http.get(uri, headers: {
+        'User-Agent': 'FloodSense/1.0 (emergency flood app)',
+        'Accept-Language': 'en,ms',
+      });
+      if (resp.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(resp.body);
+        if (mounted) {
+          setState(() {
+            _searchResults = data.cast<Map<String, dynamic>>();
+            _searchLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _searchLoading = false);
+      }
+    } catch (e) {
+      debugPrint('[SOSScreen] Address search error: $e');
+      if (mounted) setState(() => _searchLoading = false);
     }
   }
 
@@ -747,25 +787,114 @@ class _SOSScreenState extends State<SOSScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 14),
 
-        // ── Manual Location Fallback ───────────────────────────────────────
+        // ── Address Search (Nominatim geocoding) ───────────────────────────
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.govBlueLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.govBlue.withAlpha(60)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Icon(Icons.search, color: AppTheme.govBlue, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  isMs ? 'Cari alamat anda (lebih tepat dari GPS)' : 'Search your address (more accurate than GPS)',
+                  style: const TextStyle(color: AppTheme.govBlue, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    style: const TextStyle(color: Colors.black, fontSize: 14),
+                    onSubmitted: (_) => _searchAddress(),
+                    decoration: InputDecoration(
+                      hintText: isMs ? 'cth. Jalan Ampang, Kuala Lumpur' : 'e.g. Jalan Ampang, Kuala Lumpur',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                      filled: true,
+                      fillColor: Colors.white,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.border)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.govBlue, width: 2)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _searchLoading ? null : _searchAddress,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.govBlue,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _searchLoading
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.search, color: Colors.white, size: 20),
+                ),
+              ]),
+              // Search results list
+              if (_searchResults.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Column(
+                    children: _searchResults.take(4).map((result) {
+                      final name = result['display_name'] as String? ?? '';
+                      final shortName = name.length > 60 ? '${name.substring(0, 60)}...' : name;
+                      return InkWell(
+                        onTap: () {
+                          final lat = double.tryParse(result['lat'] as String? ?? '') ?? 0;
+                          final lng = double.tryParse(result['lon'] as String? ?? '') ?? 0;
+                          if (lat != 0 && lng != 0) {
+                            setState(() {
+                              _currentPosition = LatLng(lat, lng);
+                              _isManualLocation = true;
+                              _searchResults = [];
+                              _searchCtrl.text = shortName;
+                            });
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: Row(children: [
+                            const Icon(Icons.place_outlined, color: AppTheme.govBlue, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(shortName, style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary))),
+                          ]),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // ── Landmark note field ────────────────────────────────────────────
         TextField(
           controller: _manualLocationCtrl,
           decoration: InputDecoration(
-            hintText: isMs ? 'Taip mercu tanda aras...' : 'Type your specific landmark or exact address...',
+            hintText: isMs ? 'Nota mercu tanda (pilihan)...' : 'Landmark note (optional)...',
             hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
             prefixIcon: const Icon(Icons.location_city, color: AppTheme.govBlue),
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.border)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.border)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.govBlue, width: 2)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.govBlue, width: 2)),
           ),
         ),
         const SizedBox(height: 14),
