@@ -74,17 +74,23 @@ class VolunteerRepository {
     await _db.collection('mission_offers').doc(missionId).set(updates, SetOptions(merge: true));
     
     if (response == 'ACCEPTED') {
-      await _db.collection('incidents').doc(sosId).update({
-        'assigned_volunteer': missionId,
-        'rescuer_id': volunteerId,
-        'status': 'ASSIGNED',
-      });
+      final snap = await _db.collection('incidents').where('sos_id', isEqualTo: sosId).get();
+      for (var doc in snap.docs) {
+        await doc.reference.update({
+          'assigned_volunteer': missionId,
+          'rescuer_id': volunteerId,
+          'status': 'ASSIGNED',
+        });
+      }
     } else if (response == 'DECLINED') {
-      await _db.collection('incidents').doc(sosId).update({
-        'assigned_volunteer': FieldValue.delete(),
-        'rescuer_id': FieldValue.delete(),
-        'status': 'PENDING',
-      });
+      final snap = await _db.collection('incidents').where('sos_id', isEqualTo: sosId).get();
+      for (var doc in snap.docs) {
+        await doc.reference.update({
+          'assigned_volunteer': FieldValue.delete(),
+          'rescuer_id': FieldValue.delete(),
+          'status': 'PENDING',
+        });
+      }
     }
   }
 
