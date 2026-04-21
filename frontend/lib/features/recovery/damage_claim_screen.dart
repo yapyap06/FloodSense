@@ -193,6 +193,7 @@ class _NewClaimWizard extends StatefulWidget {
 class _NewClaimWizardState extends State<_NewClaimWizard> {
   int _step = 0;
   final List<XFile> _photos = [];
+  final List<Uint8List> _photoBytes = [];
   final List<XFile> _receipts = [];
   String _floodDepth = 'Knee';
   final _lossesCtrl = TextEditingController();
@@ -207,10 +208,12 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
 
   Future<void> _pickPhoto() async {
     if (_photos.length >= 5) return;
-    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 30, maxWidth: 600, maxHeight: 600);
+    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 30, maxWidth: 800, maxHeight: 800);
     if (file != null) {
+      final bytes = await file.readAsBytes();
       setState(() {
         _photos.add(file);
+        _photoBytes.add(bytes);
         _assessments.clear();
       });
     }
@@ -412,6 +415,35 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
   }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Step 1: Photos with LIVE COLOR THUMBNAILS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  void _showFullScreenImage(Uint8List bytes) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              clipBehavior: Clip.none,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(bytes, fit: BoxFit.contain),
+              ),
+            ),
+            Positioned(
+              top: 0, right: 0,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStep1() => SingleChildScrollView(
     padding: const EdgeInsets.all(20),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -448,27 +480,26 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           }
           // LIVE COLOR THUMBNAIL — works on both web and mobile
           return Stack(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: kIsWeb
-                  ? Image.network(
-                      _photos[i].path,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    )
-                  : Image.file(
-                      File(_photos[i].path),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    ),
+            GestureDetector(
+              onTap: () => _showFullScreenImage(_photoBytes[i]),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  _photoBytes[i],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              ),
             ),
             // Remove button
             Positioned(
               top: 4, right: 4,
               child: GestureDetector(
-                onTap: () => setState(() => _photos.removeAt(i)),
+                onTap: () => setState(() {
+                  _photos.removeAt(i);
+                  _photoBytes.removeAt(i);
+                }),
                 child: Container(
                   width: 22, height: 22,
                   decoration: const BoxDecoration(color: AppTheme.emergency, shape: BoxShape.circle),
