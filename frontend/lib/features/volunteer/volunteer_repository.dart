@@ -53,7 +53,7 @@ class VolunteerRepository {
   Stream<QuerySnapshot<Map<String, dynamic>>> watchMissionOffers(String uid) => _db
       .collection('mission_offers')
       .where('volunteer_id', isEqualTo: uid)
-      .where('status', isEqualTo: 'OFFERED')
+      .where('status', whereIn: ['OFFERED', 'ACCEPTED'])
       .snapshots();
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveMissions(String uid) => _db

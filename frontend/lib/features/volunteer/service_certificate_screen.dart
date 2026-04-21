@@ -28,67 +28,96 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
   Future<void> _downloadPDF(String certId, String name, String sosId, String dateStr, bool isMs) async {
     setState(() => _isDownloading = true);
     try {
-      final pdf = pw.Document();
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build: (pw.Context context) {
-            return pw.Center(
-              child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                children: [
-                  pw.Text(isMs ? 'SIJIL PERKHIDMATAN' : 'SERVICE CERTIFICATE', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.orange800)),
-                  pw.SizedBox(height: 30),
-                  pw.Text(isMs ? 'Ini mengesahkan bahawa:' : 'This certifies that:', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
-                  pw.SizedBox(height: 10),
-                  pw.Text(name, style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 10),
-                  pw.Text(isMs ? 'telah berjaya menyempurnakan misi menyelamat banjir' : 'has successfully completed a flood rescue mission', style: const pw.TextStyle(fontSize: 14)),
-                  pw.SizedBox(height: 20),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    color: PdfColors.green100,
-                    child: pw.Text((isMs ? 'Misi ' : 'Mission ') + sosId, style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold)),
-                  ),
-                  pw.SizedBox(height: 40),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text((isMs ? 'Tarikh: ' : 'Date: ') + dateStr, style: const pw.TextStyle(fontSize: 12)),
-                      pw.Text('ID: $certId', style: const pw.TextStyle(fontSize: 12)),
-                    ]
-                  ),
-                  pw.SizedBox(height: 50),
-                  pw.Text(isMs ? 'Diiktiraf oleh APM / NADMA Malaysia' : 'Certified by APM / NADMA Malaysia', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                ],
-              ),
-            );
-          },
-        ),
-      );
+      final pdfBytes = await _buildPdfBytes(certId, name, sosId, dateStr, isMs);
 
-      final dir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$certId.pdf');
-      await file.writeAsBytes(await pdf.save());
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sijil PDF berjaya dimuat turun!\nDisimpan di: ${file.path}', style: const TextStyle(color: Colors.white)),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+      if (kIsWeb) {
+        // Web: trigger browser file download via anchor blob
+        downloadPdfWeb(pdfBytes, '$certId.pdf');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isMs ? 'Sijil PDF berjaya dimuat turun!' : 'PDF certificate downloaded!',
+                  style: const TextStyle(color: Colors.white)),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        // Mobile: save to documents directory
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/$certId.pdf');
+        await file.writeAsBytes(pdfBytes);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${isMs ? "Dijimpan di" : "Saved to"}: ${file.path}',
+                  style: const TextStyle(color: Colors.white)),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat turun: $e', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+          SnackBar(content: Text('${isMs ? "Gagal memuat turun" : "Download failed"}: $e',
+              style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
         );
       }
     } finally {
       if (mounted) setState(() => _isDownloading = false);
     }
+  }
+
+  /// Builds and returns the raw PDF bytes for this certificate.
+  Future<List<int>> _buildPdfBytes(String certId, String name, String sosId, String dateStr, bool isMs) async {
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text(isMs ? 'SIJIL PERKHIDMATAN' : 'SERVICE CERTIFICATE',
+                    style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.orange800)),
+                pw.SizedBox(height: 30),
+                pw.Text(isMs ? 'Ini mengesahkan bahawa:' : 'This certifies that:',
+                    style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                pw.SizedBox(height: 10),
+                pw.Text(name, style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 10),
+                pw.Text(isMs ? 'telah berjaya menyempurnakan misi menyelamat banjir'
+                    : 'has successfully completed a flood rescue mission',
+                    style: const pw.TextStyle(fontSize: 14)),
+                pw.SizedBox(height: 20),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: PdfColors.green100,
+                  child: pw.Text((isMs ? 'Misi ' : 'Mission ') + sosId,
+                      style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold)),
+                ),
+                pw.SizedBox(height: 40),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text((isMs ? 'Tarikh: ' : 'Date: ') + dateStr, style: const pw.TextStyle(fontSize: 12)),
+                    pw.Text('ID: $certId', style: const pw.TextStyle(fontSize: 12)),
+                  ],
+                ),
+                pw.SizedBox(height: 50),
+                pw.Text(isMs ? 'Diiktiraf oleh APM / NADMA Malaysia' : 'Certified by APM / NADMA Malaysia',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    return pdf.save();
   }
 
   @override
@@ -256,64 +285,22 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
   Future<void> _sharePDF(String certId, String name, String sosId, String dateStr, bool isMs) async {
     setState(() => _isDownloading = true);
     try {
-      final pdf = pw.Document();
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build: (pw.Context context) {
-            return pw.Center(
-              child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                children: [
-                  pw.Text(isMs ? 'SIJIL PERKHIDMATAN' : 'SERVICE CERTIFICATE', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.orange800)),
-                  pw.SizedBox(height: 30),
-                  pw.Text(isMs ? 'Ini mengesahkan bahawa:' : 'This certifies that:', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
-                  pw.SizedBox(height: 10),
-                  pw.Text(name, style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 10),
-                  pw.Text(isMs ? 'telah berjaya menyempurnakan misi menyelamat banjir' : 'has successfully completed a flood rescue mission', style: const pw.TextStyle(fontSize: 14)),
-                  pw.SizedBox(height: 20),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    color: PdfColors.green100,
-                    child: pw.Text((isMs ? 'Misi ' : 'Mission ') + sosId, style: pw.TextStyle(color: PdfColors.green800, fontWeight: pw.FontWeight.bold)),
-                  ),
-                  pw.SizedBox(height: 40),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text((isMs ? 'Tarikh: ' : 'Date: ') + dateStr, style: const pw.TextStyle(fontSize: 12)),
-                      pw.Text('ID: $certId', style: const pw.TextStyle(fontSize: 12)),
-                    ]
-                  ),
-                  pw.SizedBox(height: 50),
-                  pw.Text(isMs ? 'Diiktiraf oleh APM / NADMA Malaysia' : 'Certified by APM / NADMA Malaysia', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                ],
-              ),
-            );
-          },
-        ),
+      final pdfBytes = await _buildPdfBytes(certId, name, sosId, dateStr, isMs);
+
+      // Save to temp file then open the native share sheet
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$certId.pdf');
+      await file.writeAsBytes(pdfBytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '${isMs ? "Sijil Perkhidmatan FloodSense" : "FloodSense Service Certificate"}: $name ($certId)',
       );
-
-      if (kIsWeb) {
-        // Web: direct blob download via html.AnchorElement
-        downloadPdfWeb(await pdf.save(), '$certId.pdf');
-      } else {
-        // Mobile: use share_plus
-        final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/$certId.pdf');
-        await file.writeAsBytes(await pdf.save());
-
-        // ignore: deprecated_member_use
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Sijil Perkhidmatan FloodSense: $name ($certId)',
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal berkongsi: $e', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
+          SnackBar(content: Text('${isMs ? "Gagal berkongsi" : "Share failed"}: $e',
+              style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
         );
       }
     } finally {
