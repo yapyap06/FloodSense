@@ -20,6 +20,7 @@
 FloodSense is an end-to-end autonomous disaster response system that transitions from reactive manual coordination into **fully autonomous AI execution**. It connects Citizens, Volunteers, and Government commanders in real-time during flood emergencies.
 
 **Key capabilities:**
+- **Autonomous Early Warning** — Alert Agent polls JPS river gauges and uses Gemini to classify flood risks
 - **Autonomous SOS Triage** — Gemini 2.0 parses distress submissions and routes them to NADMA/APM instantly
 - **AI Damage Claims** — Citizens file RM 5,000 BWI claims with AI-based evidence verification (no manual JKM review)
 - **Live Volunteer Coordination** — Real-time GPS dispatch and mission tracking across all roles
@@ -48,6 +49,7 @@ graph TD
         CA[Citizen Agent<br>Gemini 2.0 Flash]
         CO[Coordinator Agent<br>Gemini 2.0 Pro]
         RA[Resource Agent<br>Gemini 2.0 Flash]
+        AA[Alert Agent<br>Gemini 2.0 Flash]
     end
 
     C <--> |Live Tracking / Requests| FS
@@ -57,6 +59,7 @@ graph TD
     FS <--> |Triggers & Payloads| CA
     FS <--> |SitReps & Data| CO
     FS <--> |Predictions| RA
+    FS <--> |Gauge Alerts| AA
 ```
 
 
@@ -117,7 +120,7 @@ flutter run -d chrome
 
 | Tool | Purpose |
 |---|---|
-| **Gemini 2.0 Flash** | Citizen Agent (SOS triage), Resource Agent |
+| **Gemini 2.0 Flash** | Citizen Agent, Resource Agent, Alert Agent |
 | **Gemini 2.0 Pro** | Coordinator Agent (SitRep generation) |
 | **Google Cloud Run** | Hosts both services (Web App, API Backend) |
 | **Firebase Firestore** | Real-time message bus across all user roles |
@@ -132,7 +135,11 @@ FloodSense/
 ├── frontend/        # Flutter Web App (Citizen + Volunteer)
 ├── dashboard/       # Next.js Government Command Centre
 ├── agents/          # Python FastAPI Multi-Agent AI Backend
-├── scratch/         # Scratch Files
+├── configs/         # Firebase & Environment configurations
+├── docs/            # Project documentation and assets
+├── scripts/         # Database seeding and utility scripts
+├── builds/          # Compiled binaries (APK)
+├── archive/         # Legacy code and drafts
 └── README.md
 ```
 
