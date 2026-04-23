@@ -132,7 +132,7 @@ FloodSense/
 ├── frontend/        # Flutter Web App (Citizen + Volunteer)
 ├── dashboard/       # Next.js Government Command Centre
 ├── agents/          # Python FastAPI Multi-Agent AI Backend
-├── firestore.rules  # Database security rules
+├── scratch/         # Scratch Files
 └── README.md
 ```
 
