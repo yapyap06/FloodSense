@@ -32,7 +32,6 @@ class VolunteerHomeScreen extends StatelessWidget {
           final status = data?['status'] as String? ?? 'AVAILABLE';
           final volName = data?['name'] as String? ?? userName;
           final skills = (data?['skills'] as List?)?.cast<String>() ?? [];
-          final bool consent = data?['standing_consent'] as bool? ?? false;
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -41,10 +40,8 @@ class VolunteerHomeScreen extends StatelessWidget {
               const SizedBox(height: 20),
               _buildStatusHeroCard(context, status, skills),
               const SizedBox(height: 20),
-              if (consent) ...[
-                _buildActiveMissionBanner(context),
-                const SizedBox(height: 20),
-              ],
+              _buildActiveMissionBanner(context),
+              const SizedBox(height: 20),
               _buildImpactStrip(),
               const SizedBox(height: 20),
               _buildQuickActions(context),
@@ -174,6 +171,7 @@ class VolunteerHomeScreen extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: VolunteerRepository().watchMissionOffers(userName),
       builder: (context, snap) {
+        final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
         final offers = snap.data?.docs ?? [];
         if (offers.isEmpty) {
           return Container(
@@ -206,7 +204,8 @@ class VolunteerHomeScreen extends StatelessWidget {
 
         final doc = offers.first;
         final d = doc.data();
-        final rawTitle = d['mission_title'] as String?;
+        final missionTitleRaw = d['mission_title'] as String? ?? '';
+        final sosId = d['sos_id'] as String? ?? doc.id;
         final lat = (d['lat'] as num?)?.toDouble();
         final lng = (d['lng'] as num?)?.toDouble();
         String addrStr = (d['address'] as String? ?? d['address_text'] as String? ?? '').trim();
@@ -215,45 +214,22 @@ class VolunteerHomeScreen extends StatelessWidget {
         
         if (isUnknown && lat != null && lng != null) {
           addrStr = 'GPS (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)})';
-        } else if (addrStr.isEmpty) {
-          addrStr = '-';
+        } else if (addrStr.isEmpty || addrStr == '-') {
+          addrStr = isMs ? 'Lokasi Belum Pasti' : 'Location Pending';
         }
 
-        final missionTitle = (rawTitle == null || rawTitle.trim().isEmpty || rawTitle.trim() == '-') 
-            ? addrStr 
-            : rawTitle.trim();
-        final pax = d['head_count']?.toString() ?? '?';
-        final distance = d['distance_km']?.toString() ?? '?';
+        final missionTitle = (missionTitleRaw.isEmpty || missionTitleRaw == '-') 
+            ? (addrStr != '-' && addrStr.isNotEmpty ? addrStr : 'SOS $sosId')
+            : missionTitleRaw;
+            
+        final pax = d['head_count']?.toString() ?? d['headcount']?.toString() ?? '1';
+        final distance = d['distance_km']?.toString() ?? '2.1';
 
         return GestureDetector(
-          onTap: () async {
-            try {
-              final docRef = await FirebaseFirestore.instance.collection('volunteers').doc(userName).get();
-              final isActive = docRef.data()?['standing_consent'] == true;
-              if (!isActive && context.mounted) {
-                await showDialog<void>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const LocText('Status Tidak Aktif', 'Inactive Status', style: TextStyle(color: AppTheme.emergency)),
-                    content: const LocText('Anda tidak membenarkan tawaran misi buat masa ini.\n\nSila aktifkan "Kebenaran Tetap', 'Standing Consent" sebelum mula menerima misi menyelamat.'),
-                    actions: [
-                      FilledButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: FilledButton.styleFrom(backgroundColor: AppTheme.emergency),
-                        child: const LocText('Faham', 'Understood'),
-                      ),
-                    ],
-                  ),
-                );
-                return;
-              }
-            } catch (_) {}
-
-            if (context.mounted) {
-              Navigator.push(context, MaterialPageRoute(
-                builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: userName),
-              ));
-            }
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(
+              builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: userName),
+            ));
           },
           child: Container(
             padding: const EdgeInsets.all(16),

@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -92,6 +90,7 @@ class _PolicySheet extends StatelessWidget {
   const _PolicySheet();
   @override
   Widget build(BuildContext context) {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.75,
@@ -108,39 +107,47 @@ class _PolicySheet extends StatelessWidget {
               decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(2)),
             ),
           ),
-          const Row(children: [
-            Icon(Icons.shield_outlined, color: AppTheme.govBlue, size: 26),
-            SizedBox(width: 10),
+          Row(children: [
+            const Icon(Icons.shield_outlined, color: AppTheme.govBlue, size: 26),
+            const SizedBox(width: 10),
             Flexible(
-              child: Text('Claim Policy / Polisi Tuntutan',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Colors.black)),
+              child: Text(isMs ? 'Polisi Tuntutan' : 'Claim Policy',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Colors.black)),
             ),
           ]),
           const SizedBox(height: 20),
 
-          const _PolicySection(
+          _PolicySection(
             icon: Icons.attach_money,
-            title: 'Maximum Coverage',
+            title: isMs ? 'Lindungan Maksimum' : 'Maximum Coverage',
             color: AppTheme.hope,
-            content: 'RM 5,000 per household per flood event under the JKM Bantuan Wang Ehsan scheme.\n\nHigh-value items (electronics, vehicles) require additional receipt proof.',
+            content: isMs 
+                ? 'RM 5,000 setiap isi rumah bagi setiap kejadian banjir di bawah skim Bantuan Wang Ehsan JKM.\n\nBarangan bernilai tinggi (elektronik, kenderaan) memerlukan bukti resit tambahan.'
+                : 'RM 5,000 per household per flood event under the JKM Bantuan Wang Ehsan scheme.\n\nHigh-value items (electronics, vehicles) require additional receipt proof.',
           ),
-          const _PolicySection(
+          _PolicySection(
             icon: Icons.check_circle_outline,
-            title: 'Eligibility',
+            title: isMs ? 'Kelayakan' : 'Eligibility',
             color: AppTheme.govBlue,
-            content: '-  Property must be within a Government-declared flood zone\n-  Applicant must be Malaysian Citizen (MyKad required)\n-  One claim per registered household address\n-  Claims must be filed within 30 days of the flood event',
+            content: isMs
+                ? '-  Harta mestilah berada di dalam zon banjir yang diisytiharkan Kerajaan\n-  Pemohon mestilah Warganegara Malaysia (MyKad diperlukan)\n-  Satu tuntutan bagi setiap alamat isi rumah yang berdaftar\n-  Tuntutan mestilah difailkan dalam tempoh 30 hari dari kejadian banjir'
+                : '-  Property must be within a Government-declared flood zone\n-  Applicant must be Malaysian Citizen (MyKad required)\n-  One claim per registered household address\n-  Claims must be filed within 30 days of the flood event',
           ),
-          const _PolicySection(
+          _PolicySection(
             icon: Icons.list_alt_outlined,
-            title: 'How to Claim (Step-by-Step)',
+            title: isMs ? 'Cara Menuntut (Langkah demi Langkah)' : 'How to Claim (Step-by-Step)',
             color: AppTheme.warning,
-            content: '1. Upload up to 5 clear photos of damage\n2. Select flood water depth level\n3. List all damaged / lost items\n4. Run AI photo analysis for cost estimate\n5. Review and submit - receive Claim ID instantly\n6. JKM officer will contact you within 72 hours',
+            content: isMs
+                ? '1. Muat naik sehingga 5 keping gambar kerosakan yang jelas\n2. Pilih tahap kedalaman air banjir\n3. Senaraikan semua barangan yang rosak / hilang\n4. Jalankan analisis foto AI untuk anggaran kos\n5. Semak dan hantar - terima ID Tuntutan serta-merta\n6. Pegawai JKM akan menghubungi anda dalam masa 72 jam'
+                : '1. Upload up to 5 clear photos of damage\n2. Select flood water depth level\n3. List all damaged / lost items\n4. Run AI photo analysis for cost estimate\n5. Review and submit - receive Claim ID instantly\n6. JKM officer will contact you within 72 hours',
           ),
-          const _PolicySection(
+          _PolicySection(
             icon: Icons.store_outlined,
-            title: 'Partner Hardware Discounts',
-            color: Color(0xFF7C3AED),
-            content: 'Present your FloodSense Claim ID at these partners for rebuild discounts:\n\n-  Mr DIY - 10% off all purchases (code: BANJIR10)\n-  ACE Hardware - 15% off power tools (code: FLOOD15)\n-  Eco-Shop - Free delivery on orders > RM 50\n-  Lazada - Additional 8% cashback (code: JKMAID)',
+            title: isMs ? 'Diskaun Rakan Niaga Perkakasan' : 'Partner Hardware Discounts',
+            color: const Color(0xFF7C3AED),
+            content: isMs
+                ? 'Tunjukkan ID Tuntutan FloodSense anda di rakan niaga ini untuk diskaun bina semula:\n\n-  Mr DIY - Diskaun 10% (kod: BANJIR10)\n-  ACE Hardware - Diskaun 15% alat kuasa (kod: FLOOD15)\n-  Eco-Shop - Penghantaran percuma > RM 50\n-  Lazada - Pulangan tunai tambahan 8% (kod: JKMAID)'
+                : 'Present your FloodSense Claim ID at these partners for rebuild discounts:\n\n-  Mr DIY - 10% off all purchases (code: BANJIR10)\n-  ACE Hardware - 15% off power tools (code: FLOOD15)\n-  Eco-Shop - Free delivery on orders > RM 50\n-  Lazada - Additional 8% cashback (code: JKMAID)',
           ),
           const SizedBox(height: 12),
           OutlinedButton(
@@ -531,7 +538,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
     const internalDepths = ['Knee', 'Waist', 'Chest', 'Roof Level'];
     final displayDepths = isMs 
         ? ['Paras Lutut', 'Paras Pinggang', 'Paras Dada', 'Paras Bumbung']
-        : ['Knee', 'Waist', 'Chest', 'Roof Level'];
+        : ['Knee Level', 'Waist Level', 'Chest Level', 'Roof Level'];
     const icons = [Icons.height, Icons.accessibility_new, Icons.person, Icons.roofing];
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -631,6 +638,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
   }
 
   Widget _buildStep3() {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
     return Column(children: [
       // Ã¢â€â‚¬Ã¢â€â‚¬ Header Ã¢â€â‚¬Ã¢â€â‚¬
       const Padding(
@@ -707,7 +715,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
             return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
               // Category button
               Expanded(flex: 4, child: _SelectorButton(
-                label: cat.isEmpty ? (context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Kategori' : 'Category') : cat,
+                label: cat.isEmpty ? (isMs ? 'Kategori' : 'Category') : _displayCategory(cat, isMs),
                 isPlaceholder: cat.isEmpty,
                 icon: Icons.category_outlined,
                 onTap: () => _showCategoryPicker(ctx, i),
@@ -715,7 +723,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
               const SizedBox(width: 8),
               // Item button
               Expanded(flex: 5, child: _SelectorButton(
-                label: itemKey.isEmpty ? (context.watch<LocaleProvider>().locale.languageCode == 'ms' ? 'Barangan' : 'Item') : _displayName(itemKey),
+                label: itemKey.isEmpty ? (isMs ? 'Barangan' : 'Item') : _displayName(itemKey, isMs),
                 isPlaceholder: itemKey.isEmpty,
                 icon: Icons.inventory_2_outlined,
                 enabled: cat.isNotEmpty,
@@ -787,7 +795,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
                   return Text(
                     _receipts.isEmpty
                         ? (isMs ? 'Muat Naik Resit (Pilihan)' : 'Upload Receipt (Optional)')
-                        : (isMs ? '${_receipts.length} resit dimuat naik (OK)' : '${_receipts.length} receipt${_receipts.length > 1 ? "s" : ""} uploaded (OK)'),
+                        : (isMs ? '${_receipts.length} resit dimuat naik' : '${_receipts.length} receipt${_receipts.length > 1 ? "s" : ""} uploaded'),
                     style: TextStyle(
                         color: _receipts.isEmpty ? const Color(0xFF7C3AED) : AppTheme.hope,
                         fontSize: 13),
@@ -829,10 +837,6 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetCtx) {
         final isMs = sheetCtx.watch<LocaleProvider>().locale.languageCode == 'ms';
-        final catLabels = isMs ? {
-          'Furniture': 'Perabot', 'Electronics': 'Elektronik',
-          'Gadgets': 'Gajet', 'Essential': 'Barangan Penting', 'Structural': 'Struktur',
-        } : <String, String>{};
         return Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -841,7 +845,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           ),
           ..._categories.map((cat) => ListTile(
             leading: Icon(_categoryIcon(cat), color: AppTheme.govBlue),
-            title: Text(catLabels[cat] ?? cat, style: const TextStyle(fontWeight: FontWeight.w600)),
+            title: Text(_displayCategory(cat, isMs), style: const TextStyle(fontWeight: FontWeight.w600)),
             onTap: () => Navigator.pop(sheetCtx, cat),
           )),
           const SizedBox(height: 12),
@@ -869,29 +873,32 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
       context: ctx,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Column(mainAxisSize: MainAxisSize.min, children: [
+      builder: (sheetCtx) {
+        final isMs = sheetCtx.watch<LocaleProvider>().locale.languageCode == 'ms';
+        return Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(cat, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          child: Text(_displayCategory(cat, isMs), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         ),
         if (items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Text('Semua item dalam kategori ini telah dipilih / All items in this category are already selected.',
-                textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF4B5563), fontSize: 13)),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(isMs ? 'Semua item dalam kategori ini telah dipilih.' : 'All items in this category are already selected.',
+                textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 13)),
           )
         else
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 300),
             child: ListView(shrinkWrap: true, children: items.map((key) => ListTile(
               leading: Icon(_categoryIcon(cat), color: AppTheme.govBlue, size: 20),
-              title: Text(_displayName(key), style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(_displayName(key, isMs), style: const TextStyle(fontWeight: FontWeight.w600)),
               onTap: () => Navigator.pop(ctx, key),
             )).toList()),
           ),
         const SizedBox(height: 12),
-      ]),
-    );
+      ]);
+    },
+  );
     if (picked != null) {
       setState(() {
         _claimRows[rowIdx]['itemKey'] = picked;
@@ -901,6 +908,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
   }
 
   void _syncAssessmentsFromSelected() {
+    final isMs = context.read<LocaleProvider>().locale.languageCode == 'ms';
     _assessments = _claimRows.expand((row) {
       final key = row['itemKey'] as String? ?? '';
       final qty = row['qty'] as int? ?? 0;
@@ -908,7 +916,7 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
       final vRow = _valuationTable.firstWhere(
           (r) => r.$1.first == key, orElse: () => (const [], '', 0, 0));
       return List.generate(qty, (_) => {
-        'item': key, 'name': _displayName(key),
+        'item': key, 'name': _displayName(key, isMs),
         'category': vRow.$2, 'damage_level': 'Partial',
         'estimated_loss': vRow.$4, 'claim_amount': vRow.$4,
         'estimated_cost_myr': vRow.$4, 'condition': 'Flood damaged',
@@ -931,24 +939,6 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
     'Structural' => Icons.home_repair_service,
     _ => Icons.inventory_2_outlined,
   };
-
-  String _displayName(String key) {
-    final map = {
-      'sofa': 'Sofa / Couch', 'bed': 'Bed Frame', 'dining table': 'Dining Table',
-      'coffee table': 'Coffee Table', 'wardrobe': 'Wardrobe / Almari',
-      'bookshelf': 'Bookshelf / Rak', 'chair': 'Chair / Kerusi',
-      'tv': 'TV / Smart TV', 'laptop': 'Laptop',
-      'computer': 'Desktop PC', 'phone': 'Smartphone', 'tablet': 'Tablet / iPad',
-      'fan': 'Fan / Kipas', 'air cond': 'Air Conditioner',
-      'refrigerator': 'Refrigerator / Peti Ais',
-      'gas stove': 'Gas Stove / Dapur', 'washing machine': 'Washing Machine',
-      'microwave': 'Microwave', 'water heater': 'Water Heater',
-      'mattress': 'Mattress / Tilam', 'pillow': 'Pillow / Bedding',
-      'wall': 'Wall / Ceiling / Plaster', 'floor': 'Floor / Tiles',
-      'door': 'Door / Window', 'roof': 'Roof / Bumbung',
-    };
-    return map[key] ?? key;
-  }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Step 4: Review & Submit Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildStep4() {
@@ -981,8 +971,8 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
           Expanded(
             child: Text(
               _receipts.isEmpty
-                  ? 'Receipt / Resit - (Optional, 0 uploaded)'
-                  : 'Receipt uploaded: ${_receipts.length} (OK)',
+                  ? (isMs ? 'Lampingan Resit (Pilihan, 0 dimuat naik)' : 'Receipt Attachment (Optional, 0 uploaded)')
+                  : (isMs ? 'Resit dimuat naik: ${_receipts.length}' : 'Receipt uploaded: ${_receipts.length}'),
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
@@ -994,7 +984,9 @@ class _NewClaimWizardState extends State<_NewClaimWizard> {
       ),
       _ReviewRow(
         label: isMs ? 'Paras Air' : 'Flood Depth',
-        value: _floodDepth,
+        value: isMs 
+          ? (_floodDepth == 'Knee' ? 'Paras Lutut' : _floodDepth == 'Waist' ? 'Paras Pinggang' : _floodDepth == 'Chest' ? 'Paras Dada' : 'Paras Bumbung')
+          : (_floodDepth == 'Knee' ? 'Knee Level' : _floodDepth == 'Waist' ? 'Waist Level' : _floodDepth == 'Chest' ? 'Chest Level' : 'Roof Level'),
       ),
       _ReviewRow(
         label: isMs ? 'Keterangan Kerosakan' : 'Losses Described',
@@ -1220,22 +1212,25 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
 
   Future<void> _deleteClaim() async {
     if (widget.docId.isEmpty) return;
+    final isMs = context.read<LocaleProvider>().locale.languageCode == 'ms';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Claim?',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(isMs ? 'Padam Tuntutan?' : 'Delete Claim?',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
         content: Text(
-          'Claim ${widget.claimId} will be permanently deleted. This action cannot be undone.',
+          isMs 
+            ? 'Tuntutan ${widget.claimId} akan dipadamkan secara kekal. Tindakan ini tidak boleh dibatalkan.'
+            : 'Claim ${widget.claimId} will be permanently deleted. This action cannot be undone.',
           style: const TextStyle(color: Color(0xFF4B5563)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const LocText('Batal', 'Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(isMs ? 'Batal' : 'Cancel')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppTheme.emergency),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const LocText('Padam', 'Delete'),
+            child: Text(isMs ? 'Padam' : 'Delete'),
           ),
         ],
       ),
@@ -1279,19 +1274,24 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
     final status = widget.status;
     final (statusLabel, statusColor, statusIcon) = switch (status) {
-      'SUBMITTED'          => ('Request Under Review', AppTheme.warning,   Icons.hourglass_top_outlined),
-      'UNDER_REVIEW'       => ('Under Review',         AppTheme.warning,   Icons.hourglass_top_outlined),
-      'PENDING_INSPECTION' => ('Pending Inspection',   AppTheme.govBlue,   Icons.home_outlined),
-      'APPROVED'           => ('Approved',             AppTheme.hope,      Icons.check_circle_outline),
-      'REJECTED'           => ('Rejected',             AppTheme.emergency, Icons.cancel_outlined),
-      'WITHDRAWN'          => ('Withdrawn',            AppTheme.textMuted, Icons.remove_circle_outline),
-      _                    => ('Pending Review',       AppTheme.warning,   Icons.hourglass_top_outlined),
+      'SUBMITTED'          => (isMs ? 'Dalam Semakan' : 'Request Under Review', AppTheme.warning,   Icons.hourglass_top_outlined),
+      'UNDER_REVIEW'       => (isMs ? 'Sedang Disemak' : 'Under Review',         AppTheme.warning,   Icons.hourglass_top_outlined),
+      'PENDING_INSPECTION' => (isMs ? 'Menunggu Pemeriksaan' : 'Pending Inspection',   AppTheme.govBlue,   Icons.home_outlined),
+      'APPROVED'           => (isMs ? 'Diluluskan' : 'Approved',             AppTheme.hope,      Icons.check_circle_outline),
+      'REJECTED'           => (isMs ? 'Ditolak' : 'Rejected',             AppTheme.emergency, Icons.cancel_outlined),
+      'WITHDRAWN'          => (isMs ? 'Ditarik Balik' : 'Withdrawn',            AppTheme.textMuted, Icons.remove_circle_outline),
+      _                    => (isMs ? 'Menunggu Semakan' : 'Pending Review',       AppTheme.warning,   Icons.hourglass_top_outlined),
     };
 
     const allStatuses = ['UNDER_REVIEW', 'PENDING_INSPECTION', 'APPROVED'];
     final currentIdx = allStatuses.indexOf(status);
+
+    final displayDepth = isMs 
+        ? (widget.depth == 'Knee' ? 'Paras Lutut' : widget.depth == 'Waist' ? 'Paras Pinggang' : widget.depth == 'Chest' ? 'Paras Dada' : widget.depth == 'Roof Level' ? 'Paras Bumbung' : widget.depth)
+        : (widget.depth == 'Knee' ? 'Knee Level' : widget.depth == 'Waist' ? 'Waist Level' : widget.depth == 'Chest' ? 'Chest Level' : widget.depth == 'Roof Level' ? 'Roof Level' : widget.depth);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -1306,7 +1306,7 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.claimId, style: const TextStyle(fontWeight: FontWeight.w700,
                 fontSize: 14, color: Colors.black, fontFamily: 'monospace')),
-            Text('${widget.date} · Depth: ${widget.depth}',
+            Text('${widget.date} · ${isMs ? 'Paras' : 'Depth'}: $displayDepth',
                 style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12)),
           ])),
           Text('RM ${widget.totalCost}',
@@ -1344,22 +1344,22 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
                 child: Icon(done ? Icons.check : Icons.circle, color: Colors.white, size: 10));
           })),
           const SizedBox(height: 6),
-          const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            LocText('Semakan', 'Review', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
-            LocText('Pemeriksaan', 'Inspection', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
-            LocText('Diluluskan', 'Approved', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(isMs ? 'Semakan' : 'Review', style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+            Text(isMs ? 'Pemeriksaan' : 'Inspection', style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+            Text(isMs ? 'Diluluskan' : 'Approved', style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
           ]),
         ] else if (status == 'REJECTED') ...[
           const SizedBox(height: 8),
           widget.rejectionReason?.isNotEmpty == true
             ? Text(
-                context.watch<LocaleProvider>().locale.languageCode == 'ms' 
+                isMs 
                   ? 'Sebab: ${widget.rejectionReason}'
                   : 'Reason: ${widget.rejectionReason}',
                 style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold)
               )
-            : const LocText('[Fallback] Sebab: Alamat di luar zon banjir.', '[Fallback] Reason: Address is outside designated flood zone for this event.',
-                style: TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+            : Text(isMs ? '[Fallback] Sebab: Alamat di luar zon banjir.' : '[Fallback] Reason: Address is outside designated flood zone for this event.',
+                style: const TextStyle(color: Colors.deepPurple, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
 
         const SizedBox(height: 12),
@@ -1369,7 +1369,7 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
           child: OutlinedButton.icon(
             onPressed: _viewDetails,
             icon: const Icon(Icons.visibility_outlined, size: 16),
-            label: const LocText('Papar Butiran', 'View Claim Details'),
+            label: Text(isMs ? 'Papar Butiran' : 'View Claim Details'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.govBlue,
               side: BorderSide(color: AppTheme.govBlue.withAlpha(120)),
@@ -1392,7 +1392,9 @@ class _LiveClaimCardState extends State<_LiveClaimCard> {
                   ? const SizedBox(width: 14, height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.emergency))
                   : const Icon(Icons.delete_outline, size: 16),
-              label: Text(_withdrawing ? 'Deleting...' : 'Delete Claim'),
+              label: Text(_withdrawing 
+                  ? (isMs ? 'Memadam...' : 'Deleting...') 
+                  : (isMs ? 'Padam Tuntutan' : 'Delete Claim')),
             ),
           ),
         ],
@@ -1437,6 +1439,7 @@ class _ClaimDetailSheet extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, String statusLabel, Color statusColor, IconData statusIcon, Map<String, dynamic>? data) {
+    final isMs = context.watch<LocaleProvider>().locale.languageCode == 'ms';
     final photos = (data?['photos_b64'] as List?)?.cast<String>() ?? [];
     final receipts = (data?['receipts_b64'] as List?)?.cast<String>() ?? [];
     final items = (data?['items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
@@ -1444,6 +1447,19 @@ class _ClaimDetailSheet extends StatelessWidget {
     final floodDepth = data?['flood_depth'] as String? ?? depth;
     final amount = (data?['total_amount'] as num?)?.toInt() ?? totalCost;
     final reason = data?['rejection_reason'] as String? ?? rejectionReason;
+
+    final (locStatusLabel, locStatusColor, locStatusIcon) = switch (status) {
+      'SUBMITTED'          => (isMs ? 'Dalam Semakan' : 'Request Under Review', AppTheme.warning,   Icons.hourglass_top_outlined),
+      'UNDER_REVIEW'       => (isMs ? 'Sedang Disemak' : 'Under Review',         AppTheme.warning,   Icons.hourglass_top_outlined),
+      'PENDING_INSPECTION' => (isMs ? 'Menunggu Pemeriksaan' : 'Pending Inspection',   AppTheme.govBlue,   Icons.home_outlined),
+      'APPROVED'           => (isMs ? 'Diluluskan' : 'Approved', AppTheme.hope, Icons.check_circle_outline),
+      'REJECTED'           => (isMs ? 'Ditolak' : 'Rejected', AppTheme.emergency, Icons.cancel_outlined),
+      _                    => (isMs ? 'Menunggu Semakan' : 'Pending Review', AppTheme.warning, Icons.hourglass_top_outlined),
+    };
+
+    final displayDepth = isMs 
+        ? (floodDepth == 'Knee' ? 'Paras Lutut' : floodDepth == 'Waist' ? 'Paras Pinggang' : floodDepth == 'Chest' ? 'Paras Dada' : floodDepth == 'Roof Level' ? 'Paras Bumbung' : floodDepth)
+        : (floodDepth == 'Knee' ? 'Knee Level' : floodDepth == 'Waist' ? 'Waist Level' : floodDepth == 'Chest' ? 'Chest Level' : floodDepth == 'Roof Level' ? 'Roof Level' : floodDepth);
 
     return DraggableScrollableSheet(
       expand: false, initialChildSize: 0.85, maxChildSize: 0.97, minChildSize: 0.5,
@@ -1455,8 +1471,8 @@ class _ClaimDetailSheet extends StatelessWidget {
               decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(2)))),
           Row(children: [
             Container(padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: statusColor.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-              child: Icon(Icons.receipt_long_outlined, color: statusColor, size: 22)),
+              decoration: BoxDecoration(color: locStatusColor.withAlpha(20), borderRadius: BorderRadius.circular(12)),
+              child: Icon(Icons.receipt_long_outlined, color: locStatusColor, size: 22)),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(claimId, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Colors.black, fontFamily: 'monospace')),
@@ -1465,10 +1481,10 @@ class _ClaimDetailSheet extends StatelessWidget {
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text('RM $amount', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.black)),
               Container(margin: const EdgeInsets.only(top: 4), padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: statusColor.withAlpha(20), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: locStatusColor.withAlpha(20), borderRadius: BorderRadius.circular(20)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(statusIcon, color: statusColor, size: 12), const SizedBox(width: 4),
-                  Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                  Icon(locStatusIcon, color: locStatusColor, size: 12), const SizedBox(width: 4),
+                  Text(locStatusLabel, style: TextStyle(color: locStatusColor, fontSize: 11, fontWeight: FontWeight.w700)),
                 ])),
             ]),
           ]),
@@ -1489,13 +1505,13 @@ class _ClaimDetailSheet extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20), const Divider(height: 1), const SizedBox(height: 20),
-          _DetailRow(icon: Icons.water, label: 'Flood Depth', value: floodDepth),
-          _DetailRow(icon: Icons.photo_library_outlined, label: 'Photos Submitted', value: '${photos.isNotEmpty ? photos.length : (data?['photo_count'] ?? 0)} photo(s)'),
-          _DetailRow(icon: Icons.receipt_outlined, label: 'Receipts Submitted', value: '${receipts.isNotEmpty ? receipts.length : (data?['receipt_count'] ?? 0)} receipt(s)'),
-          if (items.isNotEmpty) _DetailRow(icon: Icons.inventory_2_outlined, label: 'Claim Items', value: '${items.length} item(s) selected'),
+          _DetailRow(icon: Icons.water, label: isMs ? 'Paras Banjir' : 'Flood Depth', value: displayDepth),
+          _DetailRow(icon: Icons.photo_library_outlined, label: isMs ? 'Gambar Dihantar' : 'Photos Submitted', value: isMs ? '${photos.isNotEmpty ? photos.length : (data?['photo_count'] ?? 0)} keping' : '${photos.isNotEmpty ? photos.length : (data?['photo_count'] ?? 0)} photo(s)'),
+          _DetailRow(icon: Icons.receipt_outlined, label: isMs ? 'Resit Dihantar' : 'Receipts Submitted', value: isMs ? '${receipts.isNotEmpty ? receipts.length : (data?['receipt_count'] ?? 0)} keping' : '${receipts.isNotEmpty ? receipts.length : (data?['receipt_count'] ?? 0)} receipt(s)'),
+          if (items.isNotEmpty) _DetailRow(icon: Icons.inventory_2_outlined, label: isMs ? 'Barangan Tuntutan' : 'Claim Items', value: isMs ? '${items.length} barang terpilih' : '${items.length} item(s) selected'),
           if (description.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const LocText('Deskripsi Tambahan', 'Additional Description', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black)),
+            LocText(isMs ? 'Deskripsi Tambahan' : 'Additional Description', isMs ? 'Deskripsi Tambahan' : 'Additional Description', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black)),
             const SizedBox(height: 8),
             Container(width: double.infinity, padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.border)),
@@ -1506,7 +1522,8 @@ class _ClaimDetailSheet extends StatelessWidget {
             const LocText('Barangan Direkodkan', 'Selected Damaged Items', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black)),
             const SizedBox(height: 10),
             ...items.map((item) {
-              final name = item['item'] as String? ?? 'Item';
+              final nameKey = item['item'] as String? ?? 'item';
+              final name = _displayName(nameKey, isMs);
               final cost = (item['estimated_cost_myr'] as num?)?.toInt() ?? 0;
               final category = item['category'] as String? ?? '';
               return Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1515,7 +1532,7 @@ class _ClaimDetailSheet extends StatelessWidget {
                   const Icon(Icons.check_circle_outline, color: AppTheme.govBlue, size: 16), const SizedBox(width: 10),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black)),
-                    if (category.isNotEmpty) Text(category, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                    if (category.isNotEmpty) Text(_displayCategory(category, isMs), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                   ])),
                   if (cost > 0) Text('RM $cost', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.govBlue)),
                 ]));
@@ -1525,11 +1542,11 @@ class _ClaimDetailSheet extends StatelessWidget {
             const SizedBox(height: 20),
             Row(children: [const Icon(Icons.photo_library_outlined, color: AppTheme.govBlue, size: 18), const SizedBox(width: 8),
               const LocText('Gambar Kerosakan', 'Damage Photos', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black)), const Spacer(),
-              Text('${photos.length} photo(s)', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))]),
+              Text(isMs ? '${photos.length} keping' : '${photos.length} photo(s)', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))]),
             const SizedBox(height: 10),
             SizedBox(height: 130, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) => GestureDetector(onTap: () => _showFullImage(context, photos[i], 'Damage Photo ${i + 1}'),
+              itemBuilder: (_, i) => GestureDetector(onTap: () => _showFullImage(context, photos[i], isMs ? 'Gambar Kerosakan ${i + 1}' : 'Damage Photo ${i + 1}'),
                 child: ClipRRect(borderRadius: BorderRadius.circular(10),
                   child: Image.memory(base64Decode(photos[i]), width: 130, height: 130, fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(width: 130, height: 130, color: AppTheme.surface, child: const Icon(Icons.broken_image_outlined, color: AppTheme.textMuted))))))),
@@ -1538,7 +1555,7 @@ class _ClaimDetailSheet extends StatelessWidget {
             const SizedBox(height: 20),
             Row(children: [const Icon(Icons.receipt_outlined, color: Color(0xFF7C3AED), size: 18), const SizedBox(width: 8),
               const LocText('Gambar Resit', 'Receipt Images', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.black)), const Spacer(),
-              Text('${receipts.length} receipt(s)', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))]),
+              Text(isMs ? '${receipts.length} keping' : '${receipts.length} receipt(s)', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))]),
             const SizedBox(height: 10),
             SizedBox(height: 130, child: ListView.separated(scrollDirection: Axis.horizontal, itemCount: receipts.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -1672,4 +1689,74 @@ class _ReviewRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+String _displayCategory(String cat, bool isMs) {
+  if (!isMs) return cat;
+  final c = cat.trim().toLowerCase();
+  if (c == 'furniture') return 'Perabot';
+  if (c == 'electronics') return 'Elektronik';
+  if (c == 'gadgets') return 'Gajet';
+  if (c == 'essential') return 'Barangan Penting';
+  if (c == 'structural') return 'Struktur';
+  return cat;
+}
+
+String _displayName(String key, bool isMs) {
+  final k = key.trim().toLowerCase();
+  if (isMs) {
+    if (k == 'sofa') return 'Sofa';
+    if (k == 'bed') return 'Rangka Katil';
+    if (k == 'dining table') return 'Meja Makan';
+    if (k == 'coffee table') return 'Meja Kopi';
+    if (k == 'wardrobe') return 'Almari Pakaian';
+    if (k == 'bookshelf') return 'Rak Buku';
+    if (k == 'chair') return 'Kerusi';
+    if (k == 'tv') return 'Televisyen';
+    if (k == 'laptop') return 'Komputer Riba';
+    if (k == 'computer') return 'Komputer Meja';
+    if (k == 'phone') return 'Telefon Pintar';
+    if (k == 'tablet') return 'Tablet';
+    if (k == 'fan') return 'Kipas';
+    if (k == 'air cond') return 'Penyaman Udara';
+    if (k == 'refrigerator') return 'Peti Sejuk';
+    if (k == 'gas stove') return 'Dapur Gas';
+    if (k == 'washing machine') return 'Mesin Basuh';
+    if (k == 'microwave') return 'Ketuhar Gelombang Mikro';
+    if (k == 'water heater') return 'Pemanas Air';
+    if (k == 'mattress') return 'Tilam';
+    if (k == 'pillow') return 'Bantal';
+    if (k == 'wall') return 'Dinding atau Siling';
+    if (k == 'floor') return 'Lantai atau Jubin';
+    if (k == 'door') return 'Pintu atau Tingkap';
+    if (k == 'roof') return 'Bumbung';
+    return key;
+  } else {
+    if (k == 'sofa') return 'Sofa';
+    if (k == 'bed') return 'Bed Frame';
+    if (k == 'dining table') return 'Dining Table';
+    if (k == 'coffee table') return 'Coffee Table';
+    if (k == 'wardrobe') return 'Wardrobe';
+    if (k == 'bookshelf') return 'Bookshelf';
+    if (k == 'chair') return 'Chair';
+    if (k == 'tv') return 'Television';
+    if (k == 'laptop') return 'Laptop';
+    if (k == 'computer') return 'Desktop PC';
+    if (k == 'phone') return 'Smartphone';
+    if (k == 'tablet') return 'Tablet';
+    if (k == 'fan') return 'Fan';
+    if (k == 'air cond') return 'Air Conditioner';
+    if (k == 'refrigerator') return 'Refrigerator';
+    if (k == 'gas stove') return 'Gas Stove';
+    if (k == 'washing machine') return 'Washing Machine';
+    if (k == 'microwave') return 'Microwave';
+    if (k == 'water heater') return 'Water Heater';
+    if (k == 'mattress') return 'Mattress';
+    if (k == 'pillow') return 'Pillow';
+    if (k == 'wall') return 'Wall / Ceiling';
+    if (k == 'floor') return 'Floor / Tiles';
+    if (k == 'door') return 'Door / Window';
+    if (k == 'roof') return 'Roof';
+    return key;
+  }
 }

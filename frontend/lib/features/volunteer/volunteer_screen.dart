@@ -152,8 +152,64 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
 
   // ── Missions section ──────────────────────────────────────────────────────
   Widget _buildMissionsSection(BuildContext context) {
-    final isMs = Provider.of<LocaleProvider>(context).locale.languageCode == 'ms';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // ── Active/Dispatched missions ──────────────────────────────────
+      const LocText('MISI AKTIF (DISPATCHED)', 'ACTIVE MISSIONS (DISPATCHED)',
+          style: TextStyle(
+              color: AppTheme.warning,
+              fontSize: 11,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w600)),
+      const SizedBox(height: 12),
+      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _repo.watchActiveMissions(widget.userName),
+        builder: (ctx, snap) {
+          final active = snap.data?.docs ?? [];
+          if (active.isEmpty) {
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border)),
+              child: const Center(child: LocText(
+                  'Tiada misi aktif',
+                  'No active missions',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13))),
+            );
+          }
+          return Column(
+            children: active.map((doc) {
+              final d = doc.data();
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.warning.withAlpha(120))),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                      backgroundColor: AppTheme.warning,
+                      child: Icon(Icons.radar, color: Colors.white, size: 18)),
+                  title: const LocText('Misi Disahkan', 'Confirmed Mission',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black)),
+                  subtitle: Text(d['address'] ?? d['address_text'] ?? 'Location pending',
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right, color: AppTheme.warning),
+                  onTap: () => Navigator.push(ctx, MaterialPageRoute(
+                    builder: (_) => MissionDispatchScreen(missionId: doc.id, data: d, volunteerId: widget.userName),
+                  )),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+      const SizedBox(height: 24),
+
       const LocText('SELESAI (DARI FIREBASE)', 'COMPLETED (FROM FIRESTORE)',
           style: TextStyle(
               color: AppTheme.textSecondary,
@@ -169,6 +225,7 @@ class _VolunteerScreenState extends State<VolunteerScreen> {
           final incidents = snap.data?.docs ?? [];
           if (incidents.isEmpty) {
             return Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                   color: Colors.white,

@@ -40,15 +40,14 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
   @override
   void initState() {
     super.initState();
-    _startLocalTimer();
-    // Only auto-accept if this is a real commander-dispatched mission.
-    // SOS-screen self-initiated opens use prefix 'MIS-' and should NOT
-    // auto-accept because the volunteer only tapped to VIEW, not accept.
-    if (!widget.missionId.startsWith('MIS-')) {
-      _accept();
-    }
     _listenToCancellation();
     _startGPSStream();
+
+    // If mission is already accepted, start the timer
+    final status = widget.data['status'] as String? ?? 'OFFERED';
+    if (status == 'ACCEPTED') {
+      _startLocalTimer();
+    }
   }
 
   void _startGPSStream() {
@@ -287,8 +286,8 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
     final s = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
     final elapsedStr = '${elapsed.inHours > 0 ? '${elapsed.inHours}:' : ''}$m:$s';
 
-    final lat = (widget.data['lat'] as num?)?.toDouble();
-    final lng = (widget.data['lng'] as num?)?.toDouble();
+    final docLat = (widget.data['lat'] as num?)?.toDouble();
+    final docLng = (widget.data['lng'] as num?)?.toDouble();
     String address = (widget.data['address_text'] as String? ?? widget.data['address'] as String? ?? '').trim();
     bool hasAlpha = RegExp(r'[a-zA-Z0-9]').hasMatch(address);
     bool isUnknown = !hasAlpha || 
@@ -297,8 +296,8 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
                      address.toLowerCase() == 'null';
     
     if (isUnknown) {
-      if (lat != null && lng != null) {
-        address = 'GPS (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)})';
+      if (docLat != null && docLng != null) {
+        address = 'GPS (${docLat.toStringAsFixed(5)}, ${docLng.toStringAsFixed(5)})';
       } else {
         address = isMs ? 'Lokasi GPS tidak diketahui' : 'GPS location unknown';
       }
@@ -314,8 +313,8 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
         ? _fmtTs(createdAtTs)
         : '-';
     // Victim location from Firestore or demo fallback
-    final lat = (widget.data['lat'] as num?)?.toDouble() ?? 3.0738;
-    final lng = (widget.data['lng'] as num?)?.toDouble() ?? 101.5183;
+    final lat = docLat ?? 3.0738;
+    final lng = docLng ?? 101.5183;
     final victimPin = LatLng(lat, lng);
     // Volunteer is slightly offset (would be real GPS in production)
     final volunteerPin = LatLng(lat + 0.012, lng - 0.008);
@@ -640,38 +639,83 @@ class _MissionDispatchScreenState extends State<MissionDispatchScreen> {
         // ── Action button ──────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: _completing ? null : _nextStep,
-                  icon: _completing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Icon(_missionStep == 0 ? Icons.directions_car : Icons.check_circle),
-                  label: Text(_missionStep == 0 
-                      ? (isMs ? 'SAYA TELAH TIBA' : 'I HAVE ARRIVED') 
-                      : (isMs ? 'MISI SELESAI' : 'MISSION COMPLETE'),
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _missionStep == 0 ? AppTheme.govBlue : AppTheme.hope,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance.collection('mission_offers').doc(widget.missionId).snapshots(),
+            builder: (context, snapshot) {
+              final status = snapshot.data?.data()?['status'] as String? ?? widget.data['status'] ?? 'OFFERED';
+              
+              if (status == 'OFFERED') {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final navigator = Navigator.of(context);
+                          await _repo.respondToMission(widget.volunteerId, widget.missionId, 'DECLINED', widget.data['sos_id'] ?? '');
+                          if (mounted) navigator.pop();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.emergency,
+                          side: const BorderSide(color: AppTheme.emergency),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const LocText('Tolak Misi', 'Reject Mission'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          await _accept();
+                          _startLocalTimer();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.hope,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const LocText('Terima Misi', 'Accept Mission'),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              return Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: _completing ? null : _nextStep,
+                      icon: _completing
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Icon(_missionStep == 0 ? Icons.directions_car : Icons.check_circle),
+                      label: Text(_missionStep == 0 
+                          ? (isMs ? 'SAYA TELAH TIBA' : 'I HAVE ARRIVED') 
+                          : (isMs ? 'MISI SELESAI' : 'MISSION COMPLETE'),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _missionStep == 0 ? AppTheme.govBlue : AppTheme.hope,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: _requestBackup,
-                  icon: const Icon(Icons.group_add, size: 20),
-                  label: const LocText('Minta Bantuan', 'Request Backup', style: TextStyle(fontWeight: FontWeight.w700)),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.emergency),
-                ),
-              ),
-            ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: _requestBackup,
+                      icon: const Icon(Icons.group_add, size: 20),
+                      label: const LocText('Minta Bantuan', 'Request Backup', style: TextStyle(fontWeight: FontWeight.w700)),
+                      style: TextButton.styleFrom(foregroundColor: AppTheme.emergency),
+                    ),
+                  ),
+                ],
+              );
+            }
           ),
         ),
       ]),

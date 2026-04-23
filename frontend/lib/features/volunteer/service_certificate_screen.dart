@@ -1,6 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -30,7 +30,7 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
     try {
       final pdfBytes = await _buildPdfBytes(certId, name, sosId, dateStr, isMs);
 
-      if (kIsWeb) {
+      if (kIsWeb || identical(0, 0.0)) {
         // Web: trigger browser file download via anchor blob
         downloadPdfWeb(pdfBytes, '$certId.pdf');
         if (mounted) {
@@ -43,6 +43,7 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
             ),
           );
         }
+        return; // Early exit for Web
       } else {
         // Mobile: save to documents directory
         final dir = await getApplicationDocumentsDirectory();
@@ -287,7 +288,22 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
     try {
       final pdfBytes = await _buildPdfBytes(certId, name, sosId, dateStr, isMs);
 
-      // Save to temp file then open the native share sheet
+      // Robust Web check: kIsWeb is the standard, identical(0, 0.0) is the fallback for JS env
+      if (kIsWeb || identical(0, 0.0)) {
+        await Share.shareXFiles(
+          [
+            XFile.fromData(
+              Uint8List.fromList(pdfBytes),
+              name: '$certId.pdf',
+              mimeType: 'application/pdf',
+            )
+          ],
+          text: '${isMs ? "Sijil Perkhidmatan FloodSense" : "FloodSense Service Certificate"}: $name ($certId)',
+        );
+        return; // Ensure we exit and don't hit mobile code
+      }
+
+      // Mobile: save to temp file then open the native share sheet
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$certId.pdf');
       await file.writeAsBytes(pdfBytes);
@@ -299,7 +315,7 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${isMs ? "Gagal berkongsi" : "Share failed"}: $e',
+          SnackBar(content: Text('REV2 - ${isMs ? "Gagal berkongsi" : "Share failed"}: $e',
               style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red),
         );
       }
