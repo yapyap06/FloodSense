@@ -243,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 8),
               _AboutRow(label: isMalay ? 'Agensi' : 'Agency', value: 'APM / NADMA Malaysia'),
               const SizedBox(height: 8),
-              const _AboutRow(label: 'AI Engine', value: 'Google Gemini 2.5 Flash'),
+              const _AboutRow(label: 'AI Engine', value: 'Google Gemini 2.0 Flash'),
               const SizedBox(height: 8),
               _AboutRow(label: isMalay ? 'Acara' : 'Hackathon', value: 'Google AI Hackathon 2026'),
             ]),
