@@ -31,7 +31,7 @@ FloodSense is an end-to-end autonomous disaster response system that transitions
 
 ## 🏗 Architecture
 
-![Functional Diagram](docs/assets/functional_diagram_FloodSense.jpeg)
+![Functional Diagram](docs/assets/functional_diagram_FloodSense.jpg)
 
 ```mermaid
 graph TD
