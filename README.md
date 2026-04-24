@@ -132,14 +132,15 @@ flutter run -d chrome
 
 ```
 FloodSense/
-├── frontend/        # Flutter Web App (Citizen + Volunteer)
-├── dashboard/       # Next.js Government Command Centre
 ├── agents/          # Python FastAPI Multi-Agent AI Backend
-├── configs/         # Firebase & Environment configurations
-├── docs/            # Project documentation and assets
-├── scripts/         # Database seeding and utility scripts
-├── builds/          # Compiled binaries (APK)
 ├── archive/         # Legacy code and drafts
+├── configs/         # Firebase & Environment configurations
+├── dashboard/       # Next.js Government Command Centre
+├── docs/            # Project documentation and assets
+├── frontend/        # Flutter Web App (Citizen + Volunteer)
+├── scratch/         # Development scripts and test cases
+├── scripts/         # Database seeding and utility scripts
+├── .gitignore
 └── README.md
 ```
 
