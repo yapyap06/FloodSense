@@ -141,6 +141,7 @@ FloodSense/
 ├── scratch/         # Development scripts and test cases
 ├── scripts/         # Database seeding and utility scripts
 ├── .gitignore
+├── firebase.json
 └── README.md
 ```
 

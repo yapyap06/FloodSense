@@ -27,7 +27,7 @@ class _MyKadOcrScreenState extends State<MyKadOcrScreen> {
     try {
       if (_geminiKey.isEmpty) throw Exception('GEMINI_API_KEY not set');
       final bytes = await file.readAsBytes();
-      final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: _geminiKey);
+      final model = GenerativeModel(model: 'gemini-2.0-flash', apiKey: _geminiKey);
       final resp = await model.generateContent([
         Content.multi([
           TextPart('''Extract the following from this Malaysian MyKad (National ID card) photo.

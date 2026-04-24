@@ -289,15 +289,17 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
 
       // Robust Web check: kIsWeb is the standard, identical(0, 0.0) is the fallback for JS env
       if (kIsWeb || identical(0, 0.0)) {
-        await Share.shareXFiles(
-          [
-            XFile.fromData(
-              Uint8List.fromList(pdfBytes),
-              name: '$certId.pdf',
-              mimeType: 'application/pdf',
-            )
-          ],
-          text: '${isMs ? "Sijil Perkhidmatan FloodSense" : "FloodSense Service Certificate"}: $name ($certId)',
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [
+              XFile.fromData(
+                Uint8List.fromList(pdfBytes),
+                name: '$certId.pdf',
+                mimeType: 'application/pdf',
+              )
+            ],
+            text: '${isMs ? "Sijil Perkhidmatan FloodSense" : "FloodSense Service Certificate"}: $name ($certId)',
+          ),
         );
         return; // Ensure we exit and don't hit mobile code
       }
@@ -307,9 +309,11 @@ class _ServiceCertificateScreenState extends State<ServiceCertificateScreen> {
       final file = File('${dir.path}/$certId.pdf');
       await file.writeAsBytes(pdfBytes);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: '${isMs ? "Sijil Perkhidmatan FloodSense" : "FloodSense Service Certificate"}: $name ($certId)',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: '${isMs ? "Sijil Perkhidmatan FloodSense" : "FloodSense Service Certificate"}: $name ($certId)',
+        ),
       );
     } catch (e) {
       if (mounted) {
